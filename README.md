@@ -45,45 +45,34 @@ streamlit run app/main.py
 >>>>>>> ffd5e1f1dd45d7b52cce5a861f10f07662bc2c6c
 
 ```md
+```md
 # 📸 Screenshots
 
-## 🏠 Dashboard
+## Dashboard
 
-![Dashboard](screenshots/Screenshot 2026-05-11 184304.png)
+![Dashboard](screenshots/dashboard.png)
 
----
+## Skills Analysis
 
-## 📊 Skills Analysis
+![Skills](screenshots/skills.png)
 
-![Skills](screenshots/Screenshot 2026-05-11 184357.png)
+## Career Path Prediction
 
----
+![Career](screenshots/career.png)
 
-## 🧭 Career Path Prediction
+## Learning Roadmap
 
-![Career](screenshots/Screenshot 2026-05-11 184425.png)
+![Roadmap](screenshots/roadmap.png)
 
----
+## Interview Questions
 
-## 🗺️ Learning Roadmap
+![Interview](screenshots/interview.png)
 
-![Roadmap](screenshots/Screenshot 2026-05-11 184457.png)
+## Job Recommendations
 
----
+![Jobs](screenshots/jobs.png)
 
-## 🎤 Interview Questions
+## ATS Analysis
 
-![Interview](screenshots/Screenshot 2026-05-11 184524.png)
-
----
-
-## 💼 Job Recommendations
-
-![Jobs](screenshots/Screenshot 2026-05-11 184545.png)
-
----
-
-## 🎯 ATS Analysis
-
-![ATS](screenshots/Screenshot 2026-05-11 184635.png)
+![ATS](screenshots/ats.png)
 ```
