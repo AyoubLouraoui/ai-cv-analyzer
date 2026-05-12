@@ -218,7 +218,9 @@ if not st.session_state.logged_in:
             else:
                 try:
                     register_user(new_username, new_email, new_password)
-                    st.session_state.auth_message = "Account created successfully. You can login now."
+                    st.session_state.logged_in = True
+                    st.session_state.username = new_username
+                    st.session_state.auth_message = ""
                     st.session_state.verification_code = ""
                     st.session_state.verification_email = ""
                     st.session_state.email_verified = False
