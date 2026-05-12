@@ -1,0 +1,49 @@
+import os
+import random
+import smtplib
+from email.message import EmailMessage
+
+
+def generate_verification_code():
+    return str(random.randint(100000, 999999))
+
+
+def get_secret(name, default=None):
+    try:
+        import streamlit as st
+
+        return st.secrets.get(name, os.getenv(name, default))
+    except Exception:
+        return os.getenv(name, default)
+
+
+def send_verification_email(to_email, code):
+    smtp_host = get_secret("SMTP_HOST")
+    smtp_port = int(get_secret("SMTP_PORT", "587"))
+    smtp_user = get_secret("SMTP_USER")
+    smtp_password = get_secret("SMTP_PASSWORD")
+    smtp_from = get_secret("SMTP_FROM", smtp_user)
+
+    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
+        return False, "Email verification is not configured."
+
+    message = EmailMessage()
+    message["Subject"] = "Your AI CV Analyzer verification code"
+    message["From"] = smtp_from
+    message["To"] = to_email
+    message.set_content(
+        "Welcome to AI CV Analyzer.\n\n"
+        f"Your verification code is: {code}\n\n"
+        "If you did not request this code, you can ignore this email."
+    )
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(message)
+
+        return True, "Verification code sent. Please check your email."
+
+    except Exception:
+        return False, "Could not send verification email. Please try again later."

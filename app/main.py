@@ -17,6 +17,7 @@ from cover_letter_generator import generate_cover_letter
 from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
+from email_verification import generate_verification_code, send_verification_email
 
 
 def is_valid_email(email):
@@ -133,6 +134,15 @@ if "username" not in st.session_state:
 if "auth_message" not in st.session_state:
     st.session_state.auth_message = ""
 
+if "verification_code" not in st.session_state:
+    st.session_state.verification_code = ""
+
+if "verification_email" not in st.session_state:
+    st.session_state.verification_email = ""
+
+if "email_verified" not in st.session_state:
+    st.session_state.email_verified = False
+
 
 # =======================
 # LOGIN / REGISTER
@@ -173,6 +183,24 @@ if not st.session_state.logged_in:
         new_email = st.text_input("Email", key="register_email")
         new_password = st.text_input("Password", type="password", key="register_password")
         confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
+        verification_code = st.text_input("Email Verification Code", key="register_verification_code")
+
+        if st.button("Send Verification Code", use_container_width=True):
+            if not new_email:
+                st.error("Please enter your email first.")
+            elif not is_valid_email(new_email):
+                st.error("Please enter a valid email address.")
+            else:
+                code = generate_verification_code()
+                sent, message = send_verification_email(new_email, code)
+
+                if sent:
+                    st.session_state.verification_code = code
+                    st.session_state.verification_email = new_email.strip().lower()
+                    st.session_state.email_verified = False
+                    st.success(message)
+                else:
+                    st.error(message)
 
         if st.button("Create Account", use_container_width=True):
             if not new_username or not new_email or not new_password:
@@ -181,10 +209,19 @@ if not st.session_state.logged_in:
                 st.error("Please enter a valid email address.")
             elif new_password != confirm_password:
                 st.error("❌ Passwords do not match")
+            elif (
+                not st.session_state.verification_code
+                or st.session_state.verification_email != new_email.strip().lower()
+                or verification_code.strip() != st.session_state.verification_code
+            ):
+                st.error("Please verify your email with the code we sent you.")
             else:
                 try:
                     register_user(new_username, new_email, new_password)
                     st.session_state.auth_message = "Account created successfully. You can login now."
+                    st.session_state.verification_code = ""
+                    st.session_state.verification_email = ""
+                    st.session_state.email_verified = False
                     st.rerun()
                     st.success("✅ Account created successfully. You can login now.")
                 except Exception:
