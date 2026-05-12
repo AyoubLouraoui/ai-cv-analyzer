@@ -3,7 +3,9 @@ import plotly.express as px
 import pandas as pd
 import streamlit_authenticator as stauth
 import yaml
+
 from yaml.loader import SafeLoader
+
 from pdf_parser import extract_text_from_pdf
 from skill_extractor import extract_skills
 from matcher import calculate_match_score
@@ -16,59 +18,38 @@ from roadmap_generator import generate_roadmap
 from cover_letter_generator import generate_cover_letter
 from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
+from cv_improver import improve_cv
+
+# =======================
+# PAGE CONFIG
+# =======================
 
 st.set_page_config(
     page_title="AI CV Analyzer",
     page_icon="🤖",
     layout="wide"
 )
-with open("app/auth_config.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
-
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
-
-authenticator.login(location="main")
-
-name = st.session_state.get("name")
-username = st.session_state.get("username")
-authentication_status = st.session_state.get("authentication_status")
-
-if authentication_status is False:
-    st.error("Username or password is incorrect")
-    st.stop()
-
-if authentication_status is None:
-    st.warning("Please enter your username and password")
-    st.stop()
-
-with st.sidebar:
-    authenticator.logout("Logout", "sidebar")
-    st.success(f"Welcome {name}")
 
 # =======================
-# CSS
+# GLOBAL CSS
 # =======================
 
 st.markdown("""
 <style>
+
 .stApp {
-    background: linear-gradient(135deg, #0f172a 0%, #111827 45%, #020617 100%);
+    background: linear-gradient(135deg, #020617 0%, #0f172a 45%, #111827 100%);
     color: white;
 }
 
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
 }
 
 .main-title {
-    font-size: 48px;
-    font-weight: 800;
+    font-size: 54px;
+    font-weight: 900;
     text-align: center;
     background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
     -webkit-background-clip: text;
@@ -83,33 +64,129 @@ st.markdown("""
 }
 
 .card {
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(15, 23, 42, 0.88);
     padding: 25px;
-    border-radius: 20px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.35);
     margin-bottom: 20px;
 }
 
 .section-title {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 700;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
     color: #f8fafc;
 }
 
 .good-badge {
     display: inline-block;
-    padding: 8px 14px;
-    margin: 5px;
+    padding: 10px 16px;
+    margin: 6px;
     border-radius: 999px;
     background: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(74, 222, 128, 0.35);
     color: #bbf7d0;
     font-weight: 600;
 }
+
+.login-card {
+    max-width: 540px;
+    margin: 90px auto 25px auto;
+    padding: 40px;
+    border-radius: 28px;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(96, 165, 250, 0.35);
+    box-shadow: 0 25px 70px rgba(0,0,0,0.55);
+    text-align: center;
+}
+
+.login-title {
+    font-size: 44px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.login-subtitle {
+    color: #cbd5e1;
+    font-size: 16px;
+    margin-top: 12px;
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+# =======================
+# AUTH CONFIG
+# =======================
+
+with open("app/auth_config.yaml") as file:
+    config = yaml.load(file, Loader=SafeLoader)
+
+authenticator = stauth.Authenticate(
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"]
+)
+
+# =======================
+# LOGIN PAGE
+# =======================
+
+if st.session_state.get("authentication_status") is not True:
+
+    st.markdown("""
+    <div class="login-card">
+        <div class="login-title">🤖 AI CV Analyzer</div>
+
+        <div class="login-subtitle">
+            AI-Powered Career Intelligence Platform
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    authenticator.login(location="main")
+
+    authentication_status = st.session_state.get("authentication_status")
+
+    if authentication_status is False:
+        st.error("❌ Username or password is incorrect")
+        st.stop()
+
+    if authentication_status is None:
+        st.warning("🔐 Please login to continue")
+        st.stop()
+
+name = st.session_state.get("name")
+
+# =======================
+# SIDEBAR
+# =======================
+
+with st.sidebar:
+
+    st.success(f"👋 Welcome, {name}")
+
+    authenticator.logout("🚪 Logout", "sidebar")
+
+    st.title("⚙️ Dashboard")
+
+    st.markdown("---")
+
+    st.write("### 🚀 Features")
+
+    st.write("✅ CV Skills Extraction")
+    st.write("✅ ATS Match Analysis")
+    st.write("✅ AI Career Prediction")
+    st.write("✅ Learning Roadmaps")
+    st.write("✅ AI Interview Questions")
+    st.write("✅ Real Jobs API")
+    st.write("✅ Morocco & International Jobs")
+    st.write("✅ Cover Letter Generator")
+    st.write("✅ AI CV Improvements")
 
 # =======================
 # HEADER
@@ -121,36 +198,12 @@ st.markdown(
 )
 
 st.markdown(
-    "<div class='subtitle'>Analyze your CV, discover your best career path, get job recommendations and professional reports.</div>",
+    "<div class='subtitle'>Analyze your CV with AI and discover the best career opportunities.</div>",
     unsafe_allow_html=True
 )
 
 # =======================
-# SIDEBAR
-# =======================
-
-with st.sidebar:
-
-    st.title("⚙️ Dashboard")
-
-    st.write("Upload your CV and explore AI-powered analysis.")
-
-    st.markdown("---")
-
-    st.write("### Features")
-
-    st.write("✅ CV Skills Extraction")
-    st.write("✅ Job Recommendations")
-    st.write("✅ Career Path Prediction")
-    st.write("✅ Learning Roadmap")
-    st.write("✅ Interview Questions")
-    st.write("✅ ATS Score")
-    st.write("✅ PDF Report")
-    st.write("✅ Cover Letter Generator")
-    st.write("✅ Real Jobs API")
-
-# =======================
-# INPUT
+# INPUT SECTION
 # =======================
 
 st.markdown("<div class='card'>", unsafe_allow_html=True)
@@ -160,16 +213,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-col_upload, col_job = st.columns([1, 1])
+col1, col2 = st.columns(2)
 
-with col_upload:
+with col1:
 
     uploaded_file = st.file_uploader(
         "📄 Upload your CV PDF",
         type=["pdf"]
     )
 
-with col_job:
+with col2:
 
     job_description = st.text_area(
         "💼 Paste Job Description Optional",
@@ -179,12 +232,12 @@ with col_job:
 st.markdown("</div>", unsafe_allow_html=True)
 
 # =======================
-# MAIN LOGIC
+# MAIN ANALYSIS
 # =======================
 
 if uploaded_file is not None:
 
-    with st.spinner("Analyzing your CV with AI..."):
+    with st.spinner("🚀 AI is analyzing your CV..."):
 
         cv_text = extract_text_from_pdf(uploaded_file)
 
@@ -196,14 +249,27 @@ if uploaded_file is not None:
 
         interview_questions = generate_interview_questions(cv_skills)
 
+        cv_improvements = improve_cv(
+            cv_text,
+            cv_skills
+        )
+
         score = 0
+
         job_skills = []
+
         missing_skills = []
+
         recommendations = []
+
         learning_roadmap = []
+
         cover_letter = ""
+
         job_search_queries = []
+
         morocco_jobs = []
+
         international_jobs = []
 
         if job_description.strip():
@@ -229,7 +295,10 @@ if uploaded_file is not None:
                 best_career_data["career"]
             )
 
-            job_search_queries = build_job_queries(cv_skills, best_career_data["career"])
+            job_search_queries = build_job_queries(
+                cv_skills,
+                best_career_data["career"]
+            )
 
             morocco_jobs = search_morocco_jobs(
                 job_search_queries
@@ -254,7 +323,7 @@ if uploaded_file is not None:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     st.markdown(
-        "<div class='section-title'>📊 Global Overview</div>",
+        "<div class='section-title'>📊 Overview</div>",
         unsafe_allow_html=True
     )
 
@@ -263,7 +332,7 @@ if uploaded_file is not None:
     c1.metric("Skills", len(cv_skills))
     c2.metric("Jobs", len(job_recommendations))
     c3.metric("Career Paths", len(career_predictions))
-    c4.metric("ATS Score", f"{score}%" if job_description.strip() else "Optional")
+    c4.metric("ATS Score", f"{score}%")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -283,7 +352,6 @@ if uploaded_file is not None:
         skills_html = ""
 
         for skill in cv_skills:
-
             skills_html += f"<span class='good-badge'>{skill}</span>"
 
         st.markdown(skills_html, unsafe_allow_html=True)
@@ -308,9 +376,6 @@ if uploaded_file is not None:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    else:
-        st.warning("No skills detected.")
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     # =======================
@@ -328,9 +393,7 @@ if uploaded_file is not None:
 
         best_career = career_predictions[0]
 
-        st.markdown(
-            f"## 🚀 {best_career['career']}"
-        )
+        st.markdown(f"## 🚀 {best_career['career']}")
 
         st.progress(int(best_career["score"]) / 100)
 
@@ -345,11 +408,8 @@ if uploaded_file is not None:
 
             st.write("### ✅ Matched Skills")
 
-            if best_career["matched_skills"]:
-                for skill in best_career["matched_skills"]:
-                    st.success(skill)
-            else:
-                st.info("No matched skills.")
+            for skill in best_career["matched_skills"]:
+                st.success(skill)
 
         with col2:
 
@@ -361,8 +421,96 @@ if uploaded_file is not None:
         st.write("### 🗺️ Learning Roadmap")
 
         for i, step in enumerate(learning_roadmap, start=1):
-
             st.info(f"Step {i}: {step}")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # =======================
+    # CV IMPROVER
+    # =======================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='section-title'>🚀 AI CV Improvement Suggestions</div>",
+        unsafe_allow_html=True
+    )
+
+    if cv_improvements:
+
+        for suggestion in cv_improvements:
+            st.warning(suggestion)
+
+    else:
+        st.success("Your CV looks strong.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # =======================
+    # REAL JOBS
+    # =======================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='section-title'>🌍 Real Job Opportunities</div>",
+        unsafe_allow_html=True
+    )
+
+    st.info(
+        "🔎 Search keywords used: " +
+        ", ".join(job_search_queries)
+    )
+
+    st.subheader("🇲🇦 Jobs in Morocco")
+
+    if morocco_jobs:
+
+        for job in morocco_jobs:
+
+            st.markdown(f"### 💼 {job['title']}")
+
+            st.write(f"🏢 Company: {job['company']}")
+
+            st.write(f"📍 Location: {job['location']}")
+
+            st.link_button(
+                "🔗 Apply Now",
+                job["url"],
+                use_container_width=True
+            )
+
+            st.markdown("---")
+
+    else:
+        st.warning("No Morocco jobs found.")
+
+    st.subheader("🌐 International Jobs")
+
+    if international_jobs:
+
+        for job in international_jobs:
+
+            country = job.get("country", "INT")
+
+            st.markdown(
+                f"### 💼 {job['title']} — {country}"
+            )
+
+            st.write(f"🏢 Company: {job['company']}")
+
+            st.write(f"📍 Location: {job['location']}")
+
+            st.link_button(
+                "🔗 Apply Now",
+                job["url"],
+                use_container_width=True
+            )
+
+            st.markdown("---")
+
+    else:
+        st.warning("No international jobs found.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -373,60 +521,16 @@ if uploaded_file is not None:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     st.markdown(
-        "<div class='section-title'>🎤 Interview Questions</div>",
+        "<div class='section-title'>🎤 AI Interview Questions</div>",
         unsafe_allow_html=True
     )
 
-    if interview_questions:
+    for skill, questions in interview_questions.items():
 
-        for skill, questions in interview_questions.items():
+        with st.expander(f"Questions for {skill}"):
 
-            with st.expander(f"Questions for {skill}"):
-
-                for q in questions:
-
-                    st.write("• " + q)
-
-    else:
-        st.info("No interview questions generated.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # =======================
-    # JOB RECOMMENDATIONS
-    # =======================
-
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>💼 Recommended Jobs</div>",
-        unsafe_allow_html=True
-    )
-
-    if job_recommendations:
-
-        chart_data = pd.DataFrame({
-            "Job": [item["job"] for item in job_recommendations[:5]],
-            "Score": [item["score"] for item in job_recommendations[:5]]
-        })
-
-        fig = px.bar(
-            chart_data,
-            x="Job",
-            y="Score",
-            text="Score"
-        )
-
-        fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font_color="white"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    else:
-        st.warning("No job recommendations found.")
+            for q in questions:
+                st.write("• " + q)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -458,23 +562,13 @@ if uploaded_file is not None:
 
         st.write("### ❌ Missing Skills")
 
-        if missing_skills:
-
-            for skill in missing_skills:
-                st.error(skill)
-
-        else:
-            st.success("No missing skills detected.")
+        for skill in missing_skills:
+            st.error(skill)
 
         st.write("### 💡 Recommendations")
 
-        if recommendations:
-
-            for rec in recommendations:
-                st.warning(rec)
-
-        else:
-            st.info("No recommendations generated.")
+        for rec in recommendations:
+            st.warning(rec)
 
         pdf_path = create_pdf_report(
             score,
@@ -507,94 +601,27 @@ if uploaded_file is not None:
         unsafe_allow_html=True
     )
 
-    if cover_letter:
-
-        st.text_area(
-            "Generated Cover Letter",
-            cover_letter,
-            height=350
-        )
-
-        st.download_button(
-            label="📥 Download Cover Letter",
-            data=cover_letter,
-            file_name="cover_letter.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-
-    else:
-        st.info("Cover letter will be generated after CV analysis.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # =======================
-    # REAL JOBS
-    # =======================
-
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>🌍 Real Job Opportunities</div>",
-        unsafe_allow_html=True
+    st.text_area(
+        "Generated Cover Letter",
+        cover_letter,
+        height=350
     )
 
-    st.info("🔎 Search keywords used: " + ", ".join(job_search_queries))
-
-    st.subheader("🇲🇦 Jobs in Morocco")
-
-    if morocco_jobs:
-
-        for job in morocco_jobs:
-
-            st.markdown(f"### 💼 {job['title']}")
-
-            st.write(f"🏢 Company: {job['company']}")
-            st.write(f"📍 Location: {job['location']}")
-
-            st.link_button(
-                "🔗 Apply Now",
-                job["url"],
-                use_container_width=True
-            )
-
-            st.markdown("---")
-
-    else:
-        st.warning("No Morocco jobs found.")
-
-    st.subheader("🌐 International Jobs")
-
-    if international_jobs:
-
-        for job in international_jobs:
-
-            country = job.get("country", "INT")
-
-            st.markdown(f"### 💼 {job['title']} — {country}")
-
-            st.write(f"🏢 Company: {job['company']}")
-            st.write(f"📍 Location: {job['location']}")
-
-            st.link_button(
-                "🔗 Apply Now",
-                job["url"],
-                use_container_width=True
-            )
-
-            st.markdown("---")
-
-    else:
-        st.warning("No international jobs found.")
+    st.download_button(
+        label="📥 Download Cover Letter",
+        data=cover_letter,
+        file_name="cover_letter.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     # =======================
-    # RAW CV TEXT
+    # RAW CV
     # =======================
 
     with st.expander("📄 Show Extracted CV Text"):
-
         st.write(cv_text)
 
 else:
