@@ -113,82 +113,223 @@ st.set_page_config(
 st.markdown("""
 <style>
 
+* {
+    box-sizing: border-box;
+}
+
 .stApp {
-    background: linear-gradient(135deg, #020617 0%, #0f172a 45%, #111827 100%);
-    color: white;
+    background:
+        radial-gradient(circle at 18% 12%, rgba(20, 184, 166, 0.16), transparent 30%),
+        radial-gradient(circle at 82% 8%, rgba(245, 158, 11, 0.10), transparent 26%),
+        linear-gradient(135deg, #07111f 0%, #0b1220 48%, #101827 100%);
+    color: #f8fafc;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .block-container {
-    padding-top: 1.5rem;
-    padding-bottom: 3rem;
+    max-width: 1240px;
+    padding-top: 1.25rem;
+    padding-bottom: 3.5rem;
 }
 
 .main-title {
-    font-size: 54px;
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: 1.02;
     font-weight: 900;
     text-align: center;
-    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    letter-spacing: 0;
+    background: linear-gradient(90deg, #f8fafc 0%, #67e8f9 42%, #fbbf24 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    margin-top: 8px;
 }
 
 .subtitle {
     text-align: center;
-    font-size: 18px;
-    color: #cbd5e1;
-    margin-bottom: 35px;
+    font-size: 17px;
+    color: #b6c4d6;
+    margin: 14px auto 32px auto;
+    max-width: 720px;
 }
 
 .card {
-    background: rgba(15, 23, 42, 0.88);
-    padding: 25px;
-    border-radius: 24px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.35);
-    margin-bottom: 20px;
+    background: rgba(9, 18, 32, 0.82);
+    padding: 24px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    margin-bottom: 18px;
+    backdrop-filter: blur(14px);
 }
 
 .section-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 18px;
+    font-size: 23px;
+    font-weight: 800;
+    margin-bottom: 16px;
     color: #f8fafc;
+    letter-spacing: 0;
 }
 
 .good-badge {
     display: inline-block;
-    padding: 10px 16px;
+    padding: 9px 13px;
     margin: 6px;
-    border-radius: 999px;
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid rgba(74, 222, 128, 0.35);
-    color: #bbf7d0;
-    font-weight: 600;
+    border-radius: 12px;
+    background: rgba(20, 184, 166, 0.14);
+    border: 1px solid rgba(45, 212, 191, 0.34);
+    color: #ccfbf1;
+    font-weight: 700;
+    font-size: 14px;
 }
 
 .login-card {
-    max-width: 540px;
-    margin: 40px auto 25px auto;
-    padding: 35px;
-    border-radius: 28px;
-    background: rgba(15, 23, 42, 0.94);
-    border: 1px solid rgba(96, 165, 250, 0.35);
-    box-shadow: 0 25px 70px rgba(0,0,0,0.55);
+    max-width: 620px;
+    margin: 42px auto 26px auto;
+    padding: 34px;
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92));
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
     text-align: center;
 }
 
 .login-title {
-    font-size: 44px;
+    font-size: clamp(34px, 5vw, 48px);
+    line-height: 1.08;
     font-weight: 900;
-    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    letter-spacing: 0;
+    background: linear-gradient(90deg, #f8fafc, #67e8f9, #fbbf24);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .login-subtitle {
-    color: #cbd5e1;
+    color: #b6c4d6;
     font-size: 16px;
     margin-top: 12px;
+}
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #08111f 0%, #0f172a 100%);
+    border-right: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p {
+    color: #dbeafe;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #f8fafc;
+    letter-spacing: 0;
+}
+
+div[data-testid="stMetric"] {
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 16px;
+    padding: 18px 18px 14px 18px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+div[data-testid="stMetric"] label {
+    color: #93a4b8;
+    font-weight: 700;
+}
+
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    color: #f8fafc;
+    font-weight: 900;
+}
+
+.stButton > button,
+.stDownloadButton > button,
+[data-testid="stLinkButton"] a {
+    border-radius: 12px !important;
+    border: 1px solid rgba(45, 212, 191, 0.42) !important;
+    background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 100%) !important;
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+    min-height: 42px;
+    box-shadow: 0 12px 30px rgba(14, 165, 233, 0.18);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover,
+[data-testid="stLinkButton"] a:hover {
+    transform: translateY(-1px);
+    border-color: rgba(251, 191, 36, 0.78) !important;
+    box-shadow: 0 16px 36px rgba(20, 184, 166, 0.22);
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"] > div {
+    background: rgba(2, 6, 23, 0.72) !important;
+    border: 1px solid rgba(148, 163, 184, 0.28) !important;
+    border-radius: 12px !important;
+    color: #f8fafc !important;
+}
+
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: rgba(45, 212, 191, 0.74) !important;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16) !important;
+}
+
+label, .stMarkdown p, .stMarkdown li {
+    color: #dbe4ef;
+}
+
+[data-testid="stFileUploader"] section {
+    background: rgba(2, 6, 23, 0.48);
+    border: 1px dashed rgba(125, 211, 252, 0.44);
+    border-radius: 16px;
+}
+
+[data-testid="stTabs"] button {
+    border-radius: 12px 12px 0 0;
+    color: #cbd5e1;
+    font-weight: 800;
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    color: #f8fafc;
+    border-bottom-color: #2dd4bf;
+}
+
+[data-testid="stDataFrame"] {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+[data-testid="stExpander"] {
+    background: rgba(15, 23, 42, 0.70);
+    border: 1px solid rgba(148, 163, 184, 0.20);
+    border-radius: 14px;
+}
+
+.stAlert {
+    border-radius: 14px;
+}
+
+.stProgress > div > div > div {
+    background: linear-gradient(90deg, #2dd4bf, #38bdf8, #fbbf24);
+}
+
+hr {
+    border-color: rgba(148, 163, 184, 0.20);
+}
+
+h1, h2, h3 {
+    letter-spacing: 0;
+    color: #f8fafc;
 }
 
 </style>
