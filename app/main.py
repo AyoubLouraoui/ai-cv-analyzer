@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
+import re
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -16,6 +17,11 @@ from cover_letter_generator import generate_cover_letter
 from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
+
+
+def is_valid_email(email):
+    pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+    return re.match(pattern, email.strip()) is not None
 
 
 st.set_page_config(
@@ -171,6 +177,8 @@ if not st.session_state.logged_in:
         if st.button("Create Account", use_container_width=True):
             if not new_username or not new_email or not new_password:
                 st.error("❌ Please fill all fields")
+            elif not is_valid_email(new_email):
+                st.error("Please enter a valid email address.")
             elif new_password != confirm_password:
                 st.error("❌ Passwords do not match")
             else:
