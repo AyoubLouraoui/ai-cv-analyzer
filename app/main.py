@@ -184,6 +184,12 @@ if "saved_upload_key" not in st.session_state:
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
+if "confirm_update_user_id" not in st.session_state:
+    st.session_state.confirm_update_user_id = None
+
+if "confirm_delete_user_id" not in st.session_state:
+    st.session_state.confirm_delete_user_id = None
+
 
 # =======================
 # LOGIN / REGISTER
@@ -366,29 +372,63 @@ if admin_page == "Admin Dashboard":
 
         with col_edit:
             if st.button("Update User", use_container_width=True):
-                if not edit_username or not edit_email:
-                    st.error("Username and email are required.")
-                elif not is_valid_email(edit_email):
-                    st.error("Please enter a valid email address.")
-                else:
-                    try:
-                        update_user(selected_user[0], edit_username, edit_email)
-                        st.success("User updated successfully.")
-                        st.rerun()
-                    except Exception:
-                        st.error("Could not update user. Username or email may already exist.")
+                st.session_state.confirm_update_user_id = selected_user[0]
+                st.session_state.confirm_delete_user_id = None
 
         with col_delete:
             if st.button("Delete User", use_container_width=True):
-                if selected_user[1] == st.session_state.username:
-                    st.error("You cannot delete the account you are currently using.")
-                else:
-                    try:
-                        delete_user(selected_user[0])
-                        st.success("User deleted successfully.")
-                        st.rerun()
-                    except Exception:
-                        st.error("Could not delete user.")
+                st.session_state.confirm_delete_user_id = selected_user[0]
+                st.session_state.confirm_update_user_id = None
+
+        if st.session_state.confirm_update_user_id == selected_user[0]:
+            st.warning(
+                f"Confirm update for user '{selected_user[1]}'?"
+            )
+            confirm_update, cancel_update = st.columns(2)
+
+            with confirm_update:
+                if st.button("Yes, update user", use_container_width=True):
+                    if not edit_username or not edit_email:
+                        st.error("Username and email are required.")
+                    elif not is_valid_email(edit_email):
+                        st.error("Please enter a valid email address.")
+                    else:
+                        try:
+                            update_user(selected_user[0], edit_username, edit_email)
+                            st.session_state.confirm_update_user_id = None
+                            st.success("User updated successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not update user. Username or email may already exist.")
+
+            with cancel_update:
+                if st.button("Cancel update", use_container_width=True):
+                    st.session_state.confirm_update_user_id = None
+                    st.rerun()
+
+        if st.session_state.confirm_delete_user_id == selected_user[0]:
+            st.warning(
+                f"Confirm delete for user '{selected_user[1]}'? This action cannot be undone."
+            )
+            confirm_delete, cancel_delete = st.columns(2)
+
+            with confirm_delete:
+                if st.button("Yes, delete user", use_container_width=True):
+                    if selected_user[1] == st.session_state.username:
+                        st.error("You cannot delete the account you are currently using.")
+                    else:
+                        try:
+                            delete_user(selected_user[0])
+                            st.session_state.confirm_delete_user_id = None
+                            st.success("User deleted successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not delete user.")
+
+            with cancel_delete:
+                if st.button("Cancel delete", use_container_width=True):
+                    st.session_state.confirm_delete_user_id = None
+                    st.rerun()
     else:
         st.info("No users found.")
 
