@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 import re
+import json
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -18,11 +19,26 @@ from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
 from email_verification import generate_verification_code, send_verification_email
+from database import add_cv_upload, get_all_cv_uploads, get_all_users
 
 
 def is_valid_email(email):
     pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
     return re.match(pattern, email.strip()) is not None
+
+
+def get_secret(name, default=None):
+    try:
+        return st.secrets.get(name, default)
+    except Exception:
+        return default
+
+
+def is_admin_login(username, password):
+    admin_username = get_secret("ADMIN_USERNAME", "admin")
+    admin_password = get_secret("ADMIN_PASSWORD", "abc123")
+
+    return username == admin_username and password == admin_password
 
 
 st.set_page_config(
@@ -143,6 +159,9 @@ if "verification_email" not in st.session_state:
 if "email_verified" not in st.session_state:
     st.session_state.email_verified = False
 
+if "saved_upload_key" not in st.session_state:
+    st.session_state.saved_upload_key = ""
+
 
 # =======================
 # LOGIN / REGISTER
@@ -169,7 +188,7 @@ if not st.session_state.logged_in:
         login_password = st.text_input("Password", type="password", key="login_password")
 
         if st.button("Login", use_container_width=True):
-            if login_user(login_username, login_password):
+            if login_user(login_username, login_password) or is_admin_login(login_username, login_password):
                 st.session_state.logged_in = True
                 st.session_state.username = login_username
                 st.session_state.auth_message = ""
@@ -246,6 +265,16 @@ with st.sidebar:
 
     st.title("⚙️ Dashboard")
     st.markdown("---")
+    is_admin = st.session_state.username == "admin"
+
+    if is_admin:
+        admin_page = st.radio(
+            "Admin Menu",
+            ["Admin Dashboard", "CV Analyzer"],
+            key="admin_page"
+        )
+    else:
+        admin_page = "CV Analyzer"
     st.write("### 🚀 Features")
     st.write("✅ CV Skills Extraction")
     st.write("✅ ATS Match Analysis")
@@ -256,6 +285,62 @@ with st.sidebar:
     st.write("✅ Morocco & International Jobs")
     st.write("✅ Cover Letter Generator")
     st.write("✅ AI CV Improvements")
+
+
+# =======================
+# ADMIN DASHBOARD
+# =======================
+
+if admin_page == "Admin Dashboard":
+    st.markdown("<div class='main-title'>Admin Dashboard</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='subtitle'>Users, uploaded CVs, and analysis history.</div>",
+        unsafe_allow_html=True
+    )
+
+    users = get_all_users()
+    uploads = get_all_cv_uploads()
+
+    c1, c2 = st.columns(2)
+    c1.metric("Users", len(users))
+    c2.metric("CV Uploads", len(uploads))
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Users</div>", unsafe_allow_html=True)
+
+    if users:
+        users_df = pd.DataFrame(users, columns=["ID", "Username", "Email"])
+        st.dataframe(users_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No users found.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>CV Uploads</div>", unsafe_allow_html=True)
+
+    if uploads:
+        uploads_df = pd.DataFrame(
+            uploads,
+            columns=[
+                "ID",
+                "Username",
+                "Filename",
+                "Skills",
+                "Best Career",
+                "Best Score",
+                "Uploaded At"
+            ]
+        )
+        uploads_df["Skills"] = uploads_df["Skills"].apply(
+            lambda value: ", ".join(json.loads(value)) if value else ""
+        )
+        st.dataframe(uploads_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No CV uploads found yet.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
 
 
 # =======================
@@ -356,6 +441,25 @@ if uploaded_file is not None:
                 job_description,
                 score
             )
+
+        upload_key = f"{st.session_state.username}:{uploaded_file.name}:{len(cv_text)}"
+
+        if st.session_state.saved_upload_key != upload_key:
+            if career_predictions:
+                saved_best_career = career_predictions[0]["career"]
+                saved_best_score = career_predictions[0]["score"]
+            else:
+                saved_best_career = "No match"
+                saved_best_score = 0
+
+            add_cv_upload(
+                st.session_state.username,
+                uploaded_file.name,
+                cv_skills,
+                saved_best_career,
+                saved_best_score
+            )
+            st.session_state.saved_upload_key = upload_key
 
 
     # =======================

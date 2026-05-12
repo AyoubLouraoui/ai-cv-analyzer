@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
 
@@ -10,6 +11,20 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE,
     email TEXT UNIQUE,
     password TEXT
+)
+""")
+
+conn.commit()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS cv_uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    filename TEXT,
+    skills TEXT,
+    best_career TEXT,
+    best_score REAL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
@@ -34,3 +49,44 @@ def get_user(username):
     )
 
     return cursor.fetchone()
+
+
+def get_all_users():
+
+    cursor.execute(
+        "SELECT id, username, email FROM users ORDER BY id DESC"
+    )
+
+    return cursor.fetchall()
+
+
+def add_cv_upload(username, filename, skills, best_career, best_score):
+
+    cursor.execute(
+        """
+        INSERT INTO cv_uploads (username, filename, skills, best_career, best_score)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            username,
+            filename,
+            json.dumps(skills),
+            best_career,
+            best_score
+        )
+    )
+
+    conn.commit()
+
+
+def get_all_cv_uploads():
+
+    cursor.execute(
+        """
+        SELECT id, username, filename, skills, best_career, best_score, uploaded_at
+        FROM cv_uploads
+        ORDER BY uploaded_at DESC
+        """
+    )
+
+    return cursor.fetchall()
