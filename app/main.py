@@ -172,10 +172,11 @@ if uploaded_file is not None:
             learning_roadmap = generate_roadmap(best_career_data["career"])
 
             cover_letter = generate_cover_letter(
-                cv_skills,
+                cv_text,
+                 cv_skills,
                 best_career_data["career"],
                 job_description
-            )
+)
 
         if job_description.strip():
             job_skills = extract_skills(job_description)
