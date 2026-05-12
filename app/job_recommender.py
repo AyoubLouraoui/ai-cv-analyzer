@@ -13,7 +13,7 @@ JOBS = {
         "python", "sql", "airflow", "kafka", "docker", "postgresql"
     ],
     "AI Engineer": [
-        "python", "machine learning", "deep learning", "pytorch", "tensorflow", "nlp"
+        "python", "artificial intelligence", "machine learning", "deep learning", "pytorch", "tensorflow", "nlp"
     ],
     "Business Intelligence Analyst": [
         "sql", "excel", "power bi", "data analysis", "dashboard"

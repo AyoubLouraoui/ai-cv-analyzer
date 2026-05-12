@@ -42,6 +42,7 @@ CAREER_PATHS = {
     "AI Engineer": {
         "skills": [
             "python",
+            "artificial intelligence",
             "machine learning",
             "deep learning",
             "pytorch",

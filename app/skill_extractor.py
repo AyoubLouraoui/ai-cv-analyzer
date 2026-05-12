@@ -1,3 +1,4 @@
+import re
 import unicodedata
 
 
@@ -9,7 +10,7 @@ SKILL_ALIASES = {
     "javascript": ["javascript", "js"],
     "react": ["react", "react.js", "reactjs"],
     "node.js": ["node.js", "nodejs", "node js"],
-    "sql": ["sql"],
+    "sql": ["sql", "base de donnees", "bases de donnees", "requete sql", "requetes sql"],
     "mysql": ["mysql"],
     "postgresql": ["postgresql", "postgres"],
     "mongodb": ["mongodb", "mongo db"],
@@ -18,15 +19,24 @@ SKILL_ALIASES = {
     "linux": ["linux"],
     "git": ["git"],
     "github": ["github", "git hub"],
-    "machine learning": ["machine learning", "ml"],
-    "deep learning": ["deep learning", "dl"],
-    "data analysis": ["data analysis", "analyse de donnees", "data analytics"],
+    "machine learning": [
+        "machine learning", "ml", "apprentissage automatique",
+        "apprentissage machine"
+    ],
+    "deep learning": [
+        "deep learning", "dl", "apprentissage profond",
+        "reseaux de neurones"
+    ],
+    "data analysis": [
+        "data analysis", "analyse de donnees", "analyse des donnees",
+        "analyste de donnees", "data analytics", "analyse statistique"
+    ],
     "pandas": ["pandas"],
     "numpy": ["numpy"],
     "scikit-learn": ["scikit-learn", "sklearn"],
     "tensorflow": ["tensorflow"],
     "pytorch": ["pytorch", "torch"],
-    "nlp": ["nlp", "natural language processing"],
+    "nlp": ["nlp", "natural language processing", "traitement du langage naturel", "taln"],
     "streamlit": ["streamlit"],
     "fastapi": ["fastapi"],
     "flask": ["flask"],
@@ -34,30 +44,40 @@ SKILL_ALIASES = {
     "excel": ["excel", "microsoft excel"],
     "airflow": ["airflow", "apache airflow"],
     "kafka": ["kafka", "apache kafka"],
-    "dashboard": ["dashboard", "dashboards"],
+    "dashboard": ["dashboard", "dashboards", "tableau de bord", "tableaux de bord"],
     "dax": ["dax"],
     "power query": ["power query"],
-    "data modeling": ["data modeling", "data modelling", "modelisation des donnees"],
+    "artificial intelligence": [
+        "artificial intelligence", "intelligence artificielle",
+        "ia", "ai"
+    ],
+    "data modeling": [
+        "data modeling", "data modelling", "modelisation des donnees",
+        "modele de donnees", "modeles de donnees"
+    ],
 
     # SOFTWARE
     "html": ["html"],
     "css": ["css"],
     "django": ["django"],
-    "api": ["api", "apis", "rest api", "restful api"],
+    "api": ["api", "apis", "rest api", "restful api", "developpement api"],
     "authentication": ["authentication", "authentification"],
-    "programming": ["programming", "programmation"],
+    "programming": ["programming", "programmation", "developpement informatique"],
     "algorithms": ["algorithms", "algorithmique"],
     "data structures": ["data structures", "structures de donnees"],
     "oop": ["oop", "object oriented programming", "poo"],
-    "software architecture": ["software architecture", "architecture logicielle"],
+    "software architecture": [
+        "software architecture", "architecture logicielle",
+        "conception logicielle", "genie logiciel"
+    ],
 
     # CLOUD & CYBER
     "aws": ["aws", "amazon web services"],
     "terraform": ["terraform"],
     "ci/cd": ["ci/cd", "cicd", "ci cd"],
     "devops": ["devops", "dev ops"],
-    "networking": ["networking", "reseaux", "network"],
-    "security": ["security", "securite", "cybersecurity", "cyber security"],
+    "networking": ["networking", "reseaux", "reseau", "network", "administration reseaux"],
+    "security": ["security", "securite", "cybersecurity", "cyber security", "cybersecurite"],
     "ethical hacking": ["ethical hacking", "hacking ethique"],
     "siem": ["siem"],
     "penetration testing": ["penetration testing", "pentest", "test d'intrusion"],
@@ -71,58 +91,79 @@ SKILL_ALIASES = {
     "subnetting": ["subnetting", "subnet"],
 
     # CIVIL ENGINEERING
-    "civil engineering": ["civil engineering", "genie civil", "ingenierie civile"],
+    "civil engineering": [
+        "civil engineering", "genie civil", "ingenierie civile",
+        "ingenieur genie civil", "travaux publics"
+    ],
     "autocad": ["autocad", "auto cad"],
-    "structural analysis": ["structural analysis", "analyse structurelle"],
-    "construction management": ["construction management", "gestion de chantier", "gestion de construction"],
-    "construction": ["construction", "batiment", "btp"],
+    "structural analysis": [
+        "structural analysis", "analyse structurelle",
+        "calcul de structure", "calcul des structures"
+    ],
+    "construction management": [
+        "construction management", "gestion de chantier",
+        "gestion de construction", "suivi de chantier", "conduite de travaux"
+    ],
+    "construction": ["construction", "batiment", "btp", "gros oeuvre", "second oeuvre"],
     "revit": ["revit"],
     "bim": ["bim", "building information modeling"],
     "sap2000": ["sap2000", "sap 2000"],
     "etabs": ["etabs"],
-    "site management": ["site management", "chantier"],
+    "site management": ["site management", "chantier", "chef de chantier"],
     "seismic design": ["seismic design", "parasismique"],
 
     # INDUSTRIAL ENGINEERING
-    "industrial engineering": ["industrial engineering", "genie industriel"],
-    "process optimization": ["process optimization", "optimisation des processus"],
-    "lean manufacturing": ["lean manufacturing", "lean"],
-    "quality management": ["quality management", "management qualite"],
-    "quality control": ["quality control", "controle qualite"],
-    "supply chain": ["supply chain", "logistique"],
+    "industrial engineering": [
+        "industrial engineering", "genie industriel",
+        "ingenieur genie industriel", "ingenierie industrielle"
+    ],
+    "process optimization": [
+        "process optimization", "optimisation des processus",
+        "amelioration continue", "optimisation industrielle"
+    ],
+    "lean manufacturing": ["lean manufacturing", "lean", "lean management", "lean manufacturing"],
+    "quality management": ["quality management", "management qualite", "systeme qualite"],
+    "quality control": ["quality control", "controle qualite", "controle de qualite"],
+    "supply chain": ["supply chain", "logistique", "chaine logistique", "approvisionnement"],
     "six sigma": ["six sigma", "6 sigma"],
     "lean six sigma": ["lean six sigma"],
     "production": ["production"],
-    "production systems": ["production systems", "systemes de production"],
+    "production systems": ["production systems", "systemes de production", "gestion de production"],
     "manufacturing": ["manufacturing", "fabrication"],
 
     # ELECTRICAL ENGINEERING
-    "electrical engineering": ["electrical engineering", "genie electrique"],
-    "electrical circuits": ["electrical circuits", "circuits electriques"],
-    "industrial automation": ["industrial automation", "automatisme industriel"],
+    "electrical engineering": [
+        "electrical engineering", "genie electrique",
+        "ingenieur genie electrique", "electricite industrielle"
+    ],
+    "electrical circuits": ["electrical circuits", "circuits electriques", "schema electrique"],
+    "industrial automation": ["industrial automation", "automatisme industriel", "automatismes industriels"],
     "automation": ["automation", "automatisme"],
-    "plc": ["plc", "automate programmable"],
+    "plc": ["plc", "automate programmable", "automates programmables", "api programmable"],
     "scada": ["scada"],
-    "embedded systems": ["embedded systems", "systemes embarques"],
+    "embedded systems": ["embedded systems", "systemes embarques", "embarque"],
     "electronics": ["electronics", "electronique"],
     "industrial communication": ["industrial communication", "communication industrielle"],
     "robotics": ["robotics", "robotique"],
     "iot": ["iot", "internet of things"],
 
     # MECHANICAL ENGINEERING
-    "mechanical engineering": ["mechanical engineering", "genie mecanique"],
-    "mechanical design": ["mechanical design", "conception mecanique"],
+    "mechanical engineering": [
+        "mechanical engineering", "genie mecanique",
+        "ingenieur genie mecanique", "ingenierie mecanique"
+    ],
+    "mechanical design": ["mechanical design", "conception mecanique", "bureau d'etudes"],
     "solidworks": ["solidworks", "solid works"],
     "thermodynamics": ["thermodynamics", "thermodynamique"],
     "industrial maintenance": ["industrial maintenance", "maintenance industrielle"],
     "maintenance": ["maintenance"],
-    "mechanics": ["mechanics", "mecanique"],
+    "mechanics": ["mechanics", "mecanique", "mecanique generale"],
     "diagnostics": ["diagnostics", "diagnostic"],
     "predictive maintenance": ["predictive maintenance", "maintenance predictive"],
-    "industrial systems": ["industrial systems", "systemes industriels"],
+    "industrial systems": ["industrial systems", "systemes industriels", "equipements industriels"],
 
     # TELECOM
-    "telecom": ["telecom", "telecommunications", "telecommunication"],
+    "telecom": ["telecom", "telecommunications", "telecommunication", "reseaux telecom"],
     "telecom infrastructure": ["telecom infrastructure", "infrastructure telecom"],
     "fiber optics": ["fiber optics", "fibre optique", "optical fiber"],
     "5g": ["5g"],
@@ -130,8 +171,11 @@ SKILL_ALIASES = {
     "rf": ["rf", "radio frequency", "radiofrequence"],
 
     # BUSINESS
-    "business analysis": ["business analysis", "analyse business", "analyse metier"],
-    "reporting": ["reporting"],
+    "business analysis": [
+        "business analysis", "analyse business", "analyse metier",
+        "analyse fonctionnelle", "analyste fonctionnel"
+    ],
+    "reporting": ["reporting", "rapports", "reportings"],
     "agile": ["agile"],
     "scrum": ["scrum"],
 }
@@ -139,8 +183,16 @@ SKILL_ALIASES = {
 
 def normalize_text(text):
     text = text.lower()
+    text = text.replace("œ", "oe").replace("æ", "ae")
+    text = text.replace("’", "'").replace("`", "'")
     text = unicodedata.normalize("NFKD", text)
     return "".join(char for char in text if not unicodedata.combining(char))
+
+
+def contains_alias(text, alias):
+    alias = normalize_text(alias)
+    pattern = r"(?<!\w)" + re.escape(alias) + r"(?!\w)"
+    return re.search(pattern, text) is not None
 
 
 def extract_skills(text):
@@ -148,7 +200,7 @@ def extract_skills(text):
     found_skills = []
 
     for skill, aliases in SKILL_ALIASES.items():
-        if any(alias in text for alias in aliases):
+        if any(contains_alias(text, alias) for alias in aliases):
             found_skills.append(skill.title())
 
     return sorted(set(found_skills))

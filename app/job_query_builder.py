@@ -3,7 +3,7 @@ def build_job_queries(cv_skills, best_career):
 
     queries = []
 
-    if any(s in skills for s in ["machine learning", "deep learning", "tensorflow", "pytorch", "nlp"]):
+    if any(s in skills for s in ["artificial intelligence", "machine learning", "deep learning", "tensorflow", "pytorch", "nlp"]):
         queries += [
             "AI Engineer",
             "Machine Learning Engineer",
