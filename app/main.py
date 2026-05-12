@@ -173,10 +173,11 @@ if uploaded_file is not None:
 
             cover_letter = generate_cover_letter(
                 cv_text,
-                 cv_skills,
+                cv_skills,
                 best_career_data["career"],
-                job_description
-)
+                job_description,
+                score
+            )       
 
         if job_description.strip():
             job_skills = extract_skills(job_description)

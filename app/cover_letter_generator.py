@@ -1,24 +1,24 @@
-import re
-
-def extract_name(cv_text):
-
-    lines = cv_text.split("\n")
-
-    for line in lines[:10]:
-
-        line = line.strip()
-
-        if len(line.split()) >= 2 and len(line.split()) <= 4:
-
-            if not any(char.isdigit() for char in line):
-
-                return line
-
-    return "Candidate"
-
-def generate_cover_letter(cv_text, cv_skills, best_career, job_description):
+def generate_cover_letter(cv_text, cv_skills, best_career, job_description, score):
 
     candidate_name = extract_name(cv_text)
+
+    # إذا كان ATS ضعيف
+    if score < 50:
+
+        return f"""
+⚠️ Your CV is not sufficiently compatible with this job position.
+
+Current ATS Match Score: {score}%
+
+Before generating a cover letter, you should improve your CV by:
+
+• Adding more relevant technical skills
+• Including matching projects
+• Improving experience related to the job offer
+• Adding missing keywords from the job description
+
+Try improving your CV and upload it again.
+"""
 
     skills_text = ", ".join(cv_skills[:8]) if cv_skills else "relevant technical skills"
 
