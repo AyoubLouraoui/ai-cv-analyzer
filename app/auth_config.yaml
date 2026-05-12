@@ -2,8 +2,8 @@ credentials:
   usernames:
     admin:
       email: admin@example.com
-      name: Admin User
-      password: abc123
+      name: Ayoub User
+      password: Ayoub19042005
 
 cookie:
   expiry_days: 30
