@@ -419,6 +419,32 @@ if uploaded_file is not None:
 
 
     # =======================
+    # JOB RECOMMENDATIONS
+    # =======================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>💼 Recommended Jobs</div>", unsafe_allow_html=True)
+
+    if job_recommendations:
+        for job in job_recommendations[:5]:
+            st.markdown(f"### {job['job']}")
+            st.progress(int(job["score"]) / 100)
+            st.metric("Job Match Score", f"{job['score']}%")
+
+            if job["matched_skills"]:
+                st.write("Matched skills: " + ", ".join(job["matched_skills"]))
+
+            st.markdown("---")
+    else:
+        st.warning(
+            "No matching jobs found from your CV skills. Make sure your CV includes "
+            "clear technical skills, tools, or domain keywords."
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+    # =======================
     # REAL JOBS
     # =======================
 
