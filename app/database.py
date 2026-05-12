@@ -21,10 +21,29 @@ CREATE TABLE IF NOT EXISTS cv_uploads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
     filename TEXT,
+    cv_text TEXT,
     skills TEXT,
     best_career TEXT,
     best_score REAL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+
+conn.commit()
+
+try:
+    cursor.execute("ALTER TABLE cv_uploads ADD COLUMN cv_text TEXT")
+    conn.commit()
+except sqlite3.OperationalError:
+    pass
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS user_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    action TEXT,
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
@@ -80,16 +99,17 @@ def delete_user(user_id):
     conn.commit()
 
 
-def add_cv_upload(username, filename, skills, best_career, best_score):
+def add_cv_upload(username, filename, cv_text, skills, best_career, best_score):
 
     cursor.execute(
         """
-        INSERT INTO cv_uploads (username, filename, skills, best_career, best_score)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO cv_uploads (username, filename, cv_text, skills, best_career, best_score)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             username,
             filename,
+            cv_text,
             json.dumps(skills),
             best_career,
             best_score
@@ -103,9 +123,35 @@ def get_all_cv_uploads():
 
     cursor.execute(
         """
-        SELECT id, username, filename, skills, best_career, best_score, uploaded_at
+        SELECT id, username, filename, cv_text, skills, best_career, best_score, uploaded_at
         FROM cv_uploads
         ORDER BY uploaded_at DESC
+        """
+    )
+
+    return cursor.fetchall()
+
+
+def add_user_activity(username, action, details=""):
+
+    cursor.execute(
+        """
+        INSERT INTO user_activity (username, action, details)
+        VALUES (?, ?, ?)
+        """,
+        (username, action, details)
+    )
+
+    conn.commit()
+
+
+def get_all_user_activity():
+
+    cursor.execute(
+        """
+        SELECT id, username, action, details, created_at
+        FROM user_activity
+        ORDER BY created_at DESC
         """
     )
 

@@ -21,7 +21,9 @@ from cv_improver import improve_cv
 from email_verification import generate_verification_code, send_verification_email
 from database import (
     add_cv_upload,
+    add_user_activity,
     delete_user,
+    get_all_user_activity,
     get_all_cv_uploads,
     get_all_users,
     update_user
@@ -221,6 +223,7 @@ if not st.session_state.logged_in:
                 st.session_state.username = login_username
                 st.session_state.is_admin = is_admin_user(login_username)
                 st.session_state.auth_message = ""
+                add_user_activity(login_username, "login", "User logged in")
                 st.success("✅ Login successful")
                 st.rerun()
             else:
@@ -273,6 +276,7 @@ if not st.session_state.logged_in:
                     st.session_state.verification_code = ""
                     st.session_state.verification_email = ""
                     st.session_state.email_verified = False
+                    add_user_activity(new_username, "register", "Account created")
                     st.rerun()
                     st.success("✅ Account created successfully. You can login now.")
                 except Exception:
@@ -289,6 +293,7 @@ with st.sidebar:
     st.success(f"👋 Welcome, {st.session_state.username}")
 
     if st.button("🚪 Logout", use_container_width=True):
+        add_user_activity(st.session_state.username, "logout", "User logged out")
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.session_state.is_admin = False
@@ -332,10 +337,12 @@ if admin_page == "Admin Dashboard":
 
     users = get_all_users()
     uploads = get_all_cv_uploads()
+    activities = get_all_user_activity()
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Users", len(users))
     c2.metric("CV Uploads", len(uploads))
+    c3.metric("Activities", len(activities))
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Users</div>", unsafe_allow_html=True)
@@ -444,18 +451,80 @@ if admin_page == "Admin Dashboard":
                 "ID",
                 "Username",
                 "Filename",
+                "CV Text",
                 "Skills",
                 "Best Career",
                 "Best Score",
                 "Uploaded At"
             ]
         )
+        uploads_df["CV Preview"] = uploads_df["CV Text"].apply(
+            lambda value: value[:300] + "..." if value and len(value) > 300 else value
+        )
         uploads_df["Skills"] = uploads_df["Skills"].apply(
             lambda value: ", ".join(json.loads(value)) if value else ""
         )
-        st.dataframe(uploads_df, use_container_width=True, hide_index=True)
+        st.dataframe(
+            uploads_df[
+                [
+                    "ID",
+                    "Username",
+                    "Filename",
+                    "Skills",
+                    "Best Career",
+                    "Best Score",
+                    "Uploaded At",
+                    "CV Preview"
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.write("### View Uploaded CV")
+        cv_options = {
+            f"{row[1]} - {row[2]} - {row[7]}": row
+            for row in uploads
+        }
+        selected_cv_label = st.selectbox(
+            "Select CV",
+            list(cv_options.keys()),
+            key="admin_selected_cv"
+        )
+        selected_cv = cv_options[selected_cv_label]
+
+        st.write(f"Username: {selected_cv[1]}")
+        st.write(f"Filename: {selected_cv[2]}")
+        st.write(f"Best Career: {selected_cv[5]} ({selected_cv[6]}%)")
+        st.text_area(
+            "CV Text",
+            selected_cv[3] or "",
+            height=350,
+            key="admin_cv_text"
+        )
+        st.download_button(
+            label="Download CV Text",
+            data=selected_cv[3] or "",
+            file_name=f"{selected_cv[1]}_{selected_cv[2]}_cv.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
     else:
         st.info("No CV uploads found yet.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>User Activity</div>", unsafe_allow_html=True)
+
+    if activities:
+        activities_df = pd.DataFrame(
+            activities,
+            columns=["ID", "Username", "Action", "Details", "Created At"]
+        )
+        st.dataframe(activities_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No user activity found yet.")
 
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
@@ -573,10 +642,38 @@ if uploaded_file is not None:
             add_cv_upload(
                 st.session_state.username,
                 uploaded_file.name,
+                cv_text,
                 cv_skills,
                 saved_best_career,
                 saved_best_score
             )
+            add_user_activity(
+                st.session_state.username,
+                "cv_upload",
+                f"Uploaded {uploaded_file.name}. Best career: {saved_best_career} ({saved_best_score}%)."
+            )
+
+            if job_description.strip():
+                add_user_activity(
+                    st.session_state.username,
+                    "ats_analysis",
+                    f"ATS score: {score}% for {uploaded_file.name}."
+                )
+
+            if job_search_queries:
+                add_user_activity(
+                    st.session_state.username,
+                    "job_search",
+                    "Search queries: " + ", ".join(job_search_queries)
+                )
+
+            if cover_letter:
+                add_user_activity(
+                    st.session_state.username,
+                    "cover_letter",
+                    f"Generated cover letter for {saved_best_career}."
+                )
+
             st.session_state.saved_upload_key = upload_key
 
 
