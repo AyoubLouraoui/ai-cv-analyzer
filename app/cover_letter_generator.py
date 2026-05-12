@@ -1,12 +1,28 @@
-def generate_cover_letter(cv_text, cv_skills, best_career, job_description, score):
+def extract_name(cv_text):
+    lines = cv_text.split("\n")
 
+    for line in lines[:15]:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        words = line.split()
+
+        if 2 <= len(words) <= 4 and not any(char.isdigit() for char in line):
+            return line
+
+    return "Candidate"
+
+
+def generate_cover_letter(cv_text, cv_skills, best_career, job_description, score):
     candidate_name = extract_name(cv_text)
 
-    # إذا كان ATS ضعيف
-    if score < 50:
-
+    if job_description.strip() and score < 50:
         return f"""
-⚠️ Your CV is not sufficiently compatible with this job position.
+⚠️ Cover Letter Not Generated
+
+Your CV is not sufficiently compatible with this job position.
 
 Current ATS Match Score: {score}%
 
