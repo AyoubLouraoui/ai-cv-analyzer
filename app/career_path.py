@@ -397,12 +397,13 @@ def predict_career_path(cv_skills):
             2
         )
 
-        results.append({
-            "career": career,
-            "score": score,
-            "matched_skills": matched,
-            "next_skills": data["next_skills"]
-        })
+        if matched:
+            results.append({
+                "career": career,
+                "score": score,
+                "matched_skills": matched,
+                "next_skills": data["next_skills"]
+            })
 
     results = sorted(
         results,

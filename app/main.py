@@ -393,6 +393,11 @@ if uploaded_file is not None:
 
         for i, step in enumerate(learning_roadmap, start=1):
             st.info(f"Step {i}: {step}")
+    else:
+        st.warning(
+            "No matching career path found. Add more relevant skills to your CV "
+            "or upload a CV related to one of the supported domains."
+        )
 
     st.markdown("</div>", unsafe_allow_html=True)
 

@@ -137,12 +137,13 @@ def recommend_jobs(cv_skills):
 
         score = round((len(matched) / len(required_skills)) * 100, 2)
 
-        results.append({
-            "job": job,
-            "score": score,
-            "matched_skills": matched,
-            "missing_skills": missing
-        })
+        if matched:
+            results.append({
+                "job": job,
+                "score": score,
+                "matched_skills": matched,
+                "missing_skills": missing
+            })
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)
 
