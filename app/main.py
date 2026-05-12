@@ -141,9 +141,8 @@ if st.session_state.get("authentication_status") is not True:
     st.markdown("""
     <div class="login-card">
         <div class="login-title">🤖 AI CV Analyzer</div>
-
         <p class="login-subtitle">
-            AI-Powered Career Intelligence Platform
+        AI-Powered Career Intelligence Platform
         </p>
     </div>
     """, unsafe_allow_html=True)
