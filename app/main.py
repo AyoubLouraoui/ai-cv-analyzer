@@ -41,6 +41,19 @@ def is_admin_login(username, password):
     return username == admin_username and password == admin_password
 
 
+def is_admin_user(username):
+    admin_usernames = get_secret("ADMIN_USERNAMES", "admin,ayoub")
+
+    if isinstance(admin_usernames, str):
+        admin_usernames = [
+            item.strip().lower()
+            for item in admin_usernames.split(",")
+            if item.strip()
+        ]
+
+    return username.strip().lower() in admin_usernames
+
+
 st.set_page_config(
     page_title="AI CV Analyzer",
     page_icon="🤖",
@@ -162,6 +175,9 @@ if "email_verified" not in st.session_state:
 if "saved_upload_key" not in st.session_state:
     st.session_state.saved_upload_key = ""
 
+if "is_admin" not in st.session_state:
+    st.session_state.is_admin = False
+
 
 # =======================
 # LOGIN / REGISTER
@@ -191,6 +207,7 @@ if not st.session_state.logged_in:
             if login_user(login_username, login_password) or is_admin_login(login_username, login_password):
                 st.session_state.logged_in = True
                 st.session_state.username = login_username
+                st.session_state.is_admin = is_admin_user(login_username)
                 st.session_state.auth_message = ""
                 st.success("✅ Login successful")
                 st.rerun()
@@ -239,6 +256,7 @@ if not st.session_state.logged_in:
                     register_user(new_username, new_email, new_password)
                     st.session_state.logged_in = True
                     st.session_state.username = new_username
+                    st.session_state.is_admin = is_admin_user(new_username)
                     st.session_state.auth_message = ""
                     st.session_state.verification_code = ""
                     st.session_state.verification_email = ""
@@ -261,13 +279,15 @@ with st.sidebar:
     if st.button("🚪 Logout", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.username = ""
+        st.session_state.is_admin = False
         st.rerun()
 
     st.title("⚙️ Dashboard")
     st.markdown("---")
-    is_admin = st.session_state.username == "admin"
+    is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
 
     if is_admin:
+        st.success("Admin mode")
         admin_page = st.radio(
             "Admin Menu",
             ["Admin Dashboard", "CV Analyzer"],
