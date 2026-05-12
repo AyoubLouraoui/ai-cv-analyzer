@@ -32,9 +32,15 @@ def send_verification_email(to_email, code):
     message["From"] = smtp_from
     message["To"] = to_email
     message.set_content(
-        "Welcome to AI CV Analyzer.\n\n"
-        f"Your verification code is: {code}\n\n"
-        "If you did not request this code, you can ignore this email."
+        "Hello,\n\n"
+        "Thank you for choosing AI CV Analyzer and for trusting us with your career journey.\n"
+        "We are happy to help you analyze your CV, discover relevant opportunities, "
+        "and improve your professional profile.\n\n"
+        f"Your email verification code is: {code}\n\n"
+        "Please enter this code in the app to complete your account creation.\n\n"
+        "If you did not request this code, you can safely ignore this email.\n\n"
+        "Best regards,\n"
+        "Ayoub Leader of AI CV Analyzer Team"
     )
 
     try:
