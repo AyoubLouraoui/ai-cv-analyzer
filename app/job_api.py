@@ -2,8 +2,8 @@ def search_jobs_by_country(query, country="gb", results_per_page=5):
     url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
 
     params = {
-        "app_id": APP_ID,
-        "app_key": APP_KEY,
+        "app_id": 4562175b,
+        "app_key": ae78902d3669d5730b5979629b75e177,
         "results_per_page": results_per_page,
         "what": query,
         "content-type": "application/json"
