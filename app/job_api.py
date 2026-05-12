@@ -168,31 +168,6 @@ def search_morocco_jobs(queries):
     if jobs:
         return jobs
 
-    jobs = []
-    seen_urls = set()
-
-    for country in ["gb", "us", "ca"]:
-        for query in morocco_queries:
-            for where in ["Morocco", "Maroc", "Casablanca", "Rabat", "Tanger"]:
-                found_jobs = search_jobs_by_country(
-                    query,
-                    country=country,
-                    results_per_page=3,
-                    where=where
-                )
-
-                for job in found_jobs:
-                    if job["url"] not in seen_urls:
-                        job["country"] = "MA"
-                        jobs.append(job)
-                        seen_urls.add(job["url"])
-
-                    if len(jobs) >= 6:
-                        return jobs
-
-    if jobs:
-        return jobs
-
     return build_morocco_search_links(morocco_queries)
 
 
