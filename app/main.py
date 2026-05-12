@@ -13,6 +13,7 @@ from career_path import predict_career_path
 from interview_generator import generate_interview_questions
 from roadmap_generator import generate_roadmap
 from cover_letter_generator import generate_cover_letter
+from job_api import search_real_jobs
 
 st.set_page_config(
     page_title="AI CV Analyzer",
@@ -170,6 +171,7 @@ if uploaded_file is not None:
         if career_predictions:
             best_career_data = career_predictions[0]
             learning_roadmap = generate_roadmap(best_career_data["career"])
+            real_jobs = search_real_jobs(best_career_data["career"])
 
             cover_letter = generate_cover_letter(
                 cv_text,
@@ -455,6 +457,39 @@ if uploaded_file is not None:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+# =======================
+# REAL JOBS API
+# =======================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='section-title'>🌍 Real Job Opportunities</div>",
+    unsafe_allow_html=True
+)
+
+if real_jobs:
+
+    for job in real_jobs:
+
+        st.markdown(f"### 💼 {job['title']}")
+
+        st.write(f"🏢 Company: {job['company']}")
+        st.write(f"📍 Location: {job['location']}")
+
+        st.link_button(
+            "🔗 Apply Now",
+            job["url"],
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+else:
+    st.warning("No real jobs found.")
+
+st.markdown("</div>", unsafe_allow_html=True)
     # =======================
     # RAW CV TEXT
     # =======================
