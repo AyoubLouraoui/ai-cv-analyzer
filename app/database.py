@@ -60,6 +60,26 @@ def get_all_users():
     return cursor.fetchall()
 
 
+def update_user(user_id, username, email):
+
+    cursor.execute(
+        "UPDATE users SET username=?, email=? WHERE id=?",
+        (username, email, user_id)
+    )
+
+    conn.commit()
+
+
+def delete_user(user_id):
+
+    cursor.execute(
+        "DELETE FROM users WHERE id=?",
+        (user_id,)
+    )
+
+    conn.commit()
+
+
 def add_cv_upload(username, filename, skills, best_career, best_score):
 
     cursor.execute(

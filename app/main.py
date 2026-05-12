@@ -19,7 +19,13 @@ from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
 from email_verification import generate_verification_code, send_verification_email
-from database import add_cv_upload, get_all_cv_uploads, get_all_users
+from database import (
+    add_cv_upload,
+    delete_user,
+    get_all_cv_uploads,
+    get_all_users,
+    update_user
+)
 
 
 def is_valid_email(email):
@@ -331,6 +337,58 @@ if admin_page == "Admin Dashboard":
     if users:
         users_df = pd.DataFrame(users, columns=["ID", "Username", "Email"])
         st.dataframe(users_df, use_container_width=True, hide_index=True)
+
+        st.write("### Manage User")
+
+        user_options = {
+            f"{user[1]} ({user[2]})": user
+            for user in users
+        }
+        selected_label = st.selectbox(
+            "Select user",
+            list(user_options.keys()),
+            key="admin_selected_user"
+        )
+        selected_user = user_options[selected_label]
+
+        edit_username = st.text_input(
+            "Username",
+            value=selected_user[1],
+            key="admin_edit_username"
+        )
+        edit_email = st.text_input(
+            "Email",
+            value=selected_user[2],
+            key="admin_edit_email"
+        )
+
+        col_edit, col_delete = st.columns(2)
+
+        with col_edit:
+            if st.button("Update User", use_container_width=True):
+                if not edit_username or not edit_email:
+                    st.error("Username and email are required.")
+                elif not is_valid_email(edit_email):
+                    st.error("Please enter a valid email address.")
+                else:
+                    try:
+                        update_user(selected_user[0], edit_username, edit_email)
+                        st.success("User updated successfully.")
+                        st.rerun()
+                    except Exception:
+                        st.error("Could not update user. Username or email may already exist.")
+
+        with col_delete:
+            if st.button("Delete User", use_container_width=True):
+                if selected_user[1] == st.session_state.username:
+                    st.error("You cannot delete the account you are currently using.")
+                else:
+                    try:
+                        delete_user(selected_user[0])
+                        st.success("User deleted successfully.")
+                        st.rerun()
+                    except Exception:
+                        st.error("Could not delete user.")
     else:
         st.info("No users found.")
 
