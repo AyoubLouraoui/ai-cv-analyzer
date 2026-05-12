@@ -3,6 +3,7 @@ import plotly.express as px
 import pandas as pd
 import re
 import json
+import secrets as py_secrets
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -67,6 +68,13 @@ def delete_user_safe(user_id):
         database.delete_user(user_id)
 
 
+def get_user_by_email_safe(email):
+    if hasattr(database, "get_user_by_email"):
+        return database.get_user_by_email(email)
+
+    return None
+
+
 def is_valid_email(email):
     pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
     return re.match(pattern, email.strip()) is not None
@@ -97,6 +105,77 @@ def is_admin_user(username):
         ]
 
     return username.strip().lower() in admin_usernames
+
+
+def get_social_user_value(key, default=""):
+    try:
+        return st.user.get(key, default)
+    except Exception:
+        return getattr(st.user, key, default)
+
+
+def is_social_login_active():
+    try:
+        return bool(st.user.is_logged_in)
+    except Exception:
+        return False
+
+
+def make_social_username(email, name):
+    base = email.split("@")[0] if email else name
+    base = re.sub(r"[^A-Za-z0-9_]", "_", base.lower()).strip("_")
+
+    return base or "social_user"
+
+
+def ensure_social_user():
+    email = get_social_user_value("email", "")
+    name = get_social_user_value("name", "") or get_social_user_value("given_name", "")
+
+    if not email:
+        email = f"{get_social_user_value('sub', py_secrets.token_hex(8))}@social.local"
+
+    existing_user = get_user_by_email_safe(email)
+
+    if existing_user:
+        return existing_user[1]
+
+    username = make_social_username(email, name)
+    base_username = username
+    counter = 1
+
+    while database.get_user(username) is not None:
+        counter += 1
+        username = f"{base_username}_{counter}"
+
+    register_user(
+        username,
+        email,
+        py_secrets.token_urlsafe(32)
+    )
+
+    add_user_activity_safe(username, "social_register", f"Account created with social login: {email}")
+
+    return username
+
+
+def complete_social_login():
+    username = ensure_social_user()
+    st.session_state.logged_in = True
+    st.session_state.username = username
+    st.session_state.is_admin = is_admin_user(username)
+    st.session_state.auth_message = ""
+    add_user_activity_safe(username, "social_login", "User logged in with social provider")
+    st.rerun()
+
+
+def start_social_login(provider):
+    try:
+        st.login(provider)
+    except Exception:
+        st.error(
+            f"{provider} login is not configured yet. Add the OIDC settings in Streamlit Secrets."
+        )
 
 
 st.set_page_config(
@@ -142,6 +221,7 @@ st.markdown("""
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-top: 8px;
+    display: none;
 }
 
 .subtitle {
@@ -150,6 +230,7 @@ st.markdown("""
     color: #b6c4d6;
     margin: 14px auto 32px auto;
     max-width: 720px;
+    display: none;
 }
 
 .card {
@@ -208,6 +289,25 @@ st.markdown("""
     color: #b6c4d6;
     font-size: 16px;
     margin-top: 12px;
+}
+
+.auth-form {
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+.auth-form [data-testid="stTextInput"],
+.auth-form [data-testid="stButton"],
+.auth-form .stButton,
+.auth-form .stAlert {
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.auth-form .stButton > button,
+.auth-form [data-testid="stButton"] button {
+    width: 100%;
 }
 
 [data-testid="stSidebar"] {
@@ -332,6 +432,151 @@ h1, h2, h3 {
     color: #f8fafc;
 }
 
+.app-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 34px;
+    margin: 8px 0 24px 0;
+    border-radius: 22px;
+    border: 1px solid rgba(125, 211, 252, 0.24);
+    background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(12, 74, 110, 0.36)),
+        linear-gradient(90deg, rgba(20, 184, 166, 0.14), rgba(251, 191, 36, 0.10));
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.36);
+}
+
+.app-hero::after {
+    content: "";
+    position: absolute;
+    right: -120px;
+    top: -120px;
+    width: 310px;
+    height: 310px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(45, 212, 191, 0.22), transparent 62%);
+}
+
+.hero-kicker {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    margin-bottom: 16px;
+    border-radius: 999px;
+    color: #ccfbf1;
+    background: rgba(20, 184, 166, 0.12);
+    border: 1px solid rgba(45, 212, 191, 0.28);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.hero-title {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+    margin: 0;
+    font-size: clamp(38px, 5vw, 68px);
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: 0;
+    color: #f8fafc;
+}
+
+.hero-title span {
+    color: #fbbf24;
+}
+
+.hero-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 18px 0 0 0;
+    color: #c6d3e1;
+    font-size: 17px;
+    line-height: 1.65;
+}
+
+.hero-strip {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 26px;
+}
+
+.hero-pill {
+    padding: 13px 14px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.38);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: #dbeafe;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.admin-hero {
+    border-color: rgba(251, 191, 36, 0.28);
+    background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(120, 53, 15, 0.26)),
+        linear-gradient(90deg, rgba(251, 191, 36, 0.14), rgba(45, 212, 191, 0.10));
+}
+
+.dashboard-note {
+    padding: 14px 16px;
+    margin: 0 0 18px 0;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(125, 211, 252, 0.18);
+    color: #cbd5e1;
+}
+
+.sidebar-brand {
+    padding: 16px;
+    margin-bottom: 14px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(14, 116, 144, 0.32), rgba(15, 23, 42, 0.94));
+    border: 1px solid rgba(125, 211, 252, 0.20);
+}
+
+.sidebar-brand-title {
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 950;
+    margin: 0;
+}
+
+.sidebar-brand-subtitle {
+    color: #9fb2c8;
+    font-size: 13px;
+    margin: 6px 0 0 0;
+}
+
+.feature-chip {
+    display: block;
+    padding: 8px 10px;
+    margin: 6px 0;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    color: #dbeafe;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+@media (max-width: 760px) {
+    .app-hero {
+        padding: 24px;
+    }
+
+    .hero-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -371,6 +616,10 @@ if "confirm_delete_user_id" not in st.session_state:
     st.session_state.confirm_delete_user_id = None
 
 
+if not st.session_state.logged_in and is_social_login_active():
+    complete_social_login()
+
+
 # =======================
 # LOGIN / REGISTER
 # =======================
@@ -391,7 +640,23 @@ if not st.session_state.logged_in:
     if st.session_state.auth_message:
         st.success(st.session_state.auth_message)
 
+    st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
+    st.write("Continue with social account")
+
+    social_col1, social_col2 = st.columns(2)
+
+    with social_col1:
+        if st.button("Continue with Google", use_container_width=True):
+            start_social_login("google")
+
+    with social_col2:
+        if st.button("Continue with GitHub/Facebook", use_container_width=True):
+            start_social_login("auth0")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
     with login_tab:
+        st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
         login_username = st.text_input("Username", key="login_username")
         login_password = st.text_input("Password", type="password", key="login_password")
 
@@ -407,7 +672,10 @@ if not st.session_state.logged_in:
             else:
                 st.error("❌ Invalid username or password")
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with register_tab:
+        st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
         new_username = st.text_input("Username", key="register_username")
         new_email = st.text_input("Email", key="register_email")
         new_password = st.text_input("Password", type="password", key="register_password")
@@ -460,6 +728,8 @@ if not st.session_state.logged_in:
                 except Exception:
                     st.error("❌ Username or email already exists")
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
     st.stop()
 
 
@@ -468,6 +738,15 @@ if not st.session_state.logged_in:
 # =======================
 
 with st.sidebar:
+    st.markdown(
+        """
+        <div class="sidebar-brand">
+            <p class="sidebar-brand-title">AI CV Analyzer</p>
+            <p class="sidebar-brand-subtitle">Career intelligence workspace</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.success(f"👋 Welcome, {st.session_state.username}")
 
     if st.button("🚪 Logout", use_container_width=True):
@@ -475,6 +754,8 @@ with st.sidebar:
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.session_state.is_admin = False
+        if is_social_login_active():
+            st.logout()
         st.rerun()
 
     st.title("⚙️ Dashboard")
@@ -507,9 +788,23 @@ with st.sidebar:
 # =======================
 
 if admin_page == "Admin Dashboard":
-    st.markdown("<div class='main-title'>Admin Dashboard</div>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='subtitle'>Users, uploaded CVs, and analysis history.</div>",
+        """
+        <div class="app-hero admin-hero">
+            <div class="hero-kicker">ADMIN COMMAND CENTER</div>
+            <h1 class="hero-title">Control every user journey from one dashboard.</h1>
+            <p class="hero-copy">
+                Review uploaded CVs, inspect extracted text, track activity history,
+                and manage accounts without leaving the workspace.
+            </p>
+            <div class="hero-strip">
+                <div class="hero-pill">User management</div>
+                <div class="hero-pill">CV archive</div>
+                <div class="hero-pill">Activity timeline</div>
+                <div class="hero-pill">Downloadable records</div>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -705,12 +1000,33 @@ if admin_page == "Admin Dashboard":
         st.info("No user activity found yet.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
     st.stop()
 
 
 # =======================
 # HEADER
 # =======================
+
+st.markdown(
+    """
+    <div class="app-hero">
+        <div class="hero-kicker">AI CAREER INTELLIGENCE</div>
+        <h1 class="hero-title">Turn any CV into a clear career plan.</h1>
+        <p class="hero-copy">
+            Upload a resume and get skill extraction, job recommendations,
+            learning roadmaps, interview questions, ATS feedback, and live job discovery.
+        </p>
+        <div class="hero-strip">
+            <div class="hero-pill">CV analysis</div>
+            <div class="hero-pill">Career scoring</div>
+            <div class="hero-pill">Roadmaps</div>
+            <div class="hero-pill">Real jobs</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown("<div class='main-title'>🤖 AI CV Analyzer</div>", unsafe_allow_html=True)
 

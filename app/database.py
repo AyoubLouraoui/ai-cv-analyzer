@@ -70,6 +70,16 @@ def get_user(username):
     return cursor.fetchone()
 
 
+def get_user_by_email(email):
+
+    cursor.execute(
+        "SELECT * FROM users WHERE email=?",
+        (email,)
+    )
+
+    return cursor.fetchone()
+
+
 def get_all_users():
 
     cursor.execute(
