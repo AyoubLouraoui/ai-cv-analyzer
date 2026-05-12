@@ -38,12 +38,25 @@ def send_verification_email(to_email, code):
     )
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.send_message(message)
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
+                server.login(smtp_user, smtp_password)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(smtp_user, smtp_password)
+                server.send_message(message)
 
         return True, "Verification code sent. Please check your email."
 
-    except Exception:
-        return False, "Could not send verification email. Please try again later."
+    except smtplib.SMTPAuthenticationError:
+        return False, "SMTP authentication failed. Check your Gmail App Password."
+    except smtplib.SMTPConnectError:
+        return False, "Could not connect to the SMTP server. Check SMTP_HOST and SMTP_PORT."
+    except smtplib.SMTPException as error:
+        return False, f"SMTP error: {error}"
+    except Exception as error:
+        return False, f"Email sending error: {error}"
