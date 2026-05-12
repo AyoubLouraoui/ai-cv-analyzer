@@ -13,7 +13,7 @@ from career_path import predict_career_path
 from interview_generator import generate_interview_questions
 from roadmap_generator import generate_roadmap
 from cover_letter_generator import generate_cover_letter
-from job_api import search_real_jobs
+from job_api import search_morocco_jobs, search_international_jobs
 
 st.set_page_config(
     page_title="AI CV Analyzer",
@@ -175,7 +175,8 @@ if uploaded_file is not None:
         recommendations = []
         learning_roadmap = []
         cover_letter = ""
-        real_jobs = []
+        morocco_jobs = []
+        international_jobs = []
 
         if job_description.strip():
 
@@ -200,7 +201,11 @@ if uploaded_file is not None:
                 best_career_data["career"]
             )
 
-            real_jobs = search_real_jobs(
+            morocco_jobs = search_morocco_jobs(
+                best_career_data["career"]
+            )
+
+            international_jobs = search_international_jobs(
                 best_career_data["career"]
             )
 
@@ -466,35 +471,64 @@ if uploaded_file is not None:
     # REAL JOBS
     # =======================
 
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    # =======================
+# REAL JOBS
+# =======================
 
-    st.markdown(
-        "<div class='section-title'>🌍 Real Job Opportunities</div>",
-        unsafe_allow_html=True
-    )
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-    if real_jobs:
+st.markdown(
+    "<div class='section-title'>🌍 Real Job Opportunities</div>",
+    unsafe_allow_html=True
+)
 
-        for job in real_jobs:
+st.subheader("🇲🇦 Jobs in Morocco")
 
-            st.markdown(f"### 💼 {job['title']}")
+if morocco_jobs:
 
-            st.write(f"🏢 Company: {job['company']}")
-            st.write(f"📍 Location: {job['location']}")
+    for job in morocco_jobs:
 
-            st.link_button(
-                "🔗 Apply Now",
-                job["url"],
-                use_container_width=True
-            )
+        st.markdown(f"### 💼 {job['title']}")
 
-            st.markdown("---")
+        st.write(f"🏢 Company: {job['company']}")
+        st.write(f"📍 Location: {job['location']}")
 
-    else:
+        st.link_button(
+            "🔗 Apply Now",
+            job["url"],
+            use_container_width=True
+        )
 
-        st.warning("No real jobs found.")
+        st.markdown("---")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.warning("No Morocco jobs found.")
+
+st.subheader("🌐 International Jobs")
+
+if international_jobs:
+
+    for job in international_jobs:
+
+        country = job.get("country", "INT")
+
+        st.markdown(f"### 💼 {job['title']}  —  {country}")
+
+        st.write(f"🏢 Company: {job['company']}")
+        st.write(f"📍 Location: {job['location']}")
+
+        st.link_button(
+            "🔗 Apply Now",
+            job["url"],
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+else:
+    st.warning("No international jobs found.")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
     # =======================
     # RAW CV TEXT
