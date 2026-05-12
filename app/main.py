@@ -489,7 +489,7 @@ if real_jobs:
 else:
     st.warning("No real jobs found.")
 
-st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     # =======================
     # RAW CV TEXT
     # =======================
