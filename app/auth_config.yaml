@@ -1,0 +1,11 @@
+credentials:
+  usernames:
+    admin:
+      email: ayoublouraoui4@gmail.com
+      name: Ayoub User
+      password: ayoub2005
+
+cookie:
+  expiry_days: 30
+  key: ai_cv_analyzer_signature
+  name: ai_cv_analyzer_cookie

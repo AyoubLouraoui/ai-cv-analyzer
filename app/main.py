@@ -1,7 +1,9 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-
+import streamlit_authenticator as stauth
+import yaml
+from yaml.loader import SafeLoader
 from pdf_parser import extract_text_from_pdf
 from skill_extractor import extract_skills
 from matcher import calculate_match_score
@@ -20,6 +22,29 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+with open("app/auth_config.yaml") as file:
+    config = yaml.load(file, Loader=SafeLoader)
+
+authenticator = stauth.Authenticate(
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"]
+)
+
+name, authentication_status, username = authenticator.login("Login", "main")
+
+if authentication_status is False:
+    st.error("Username or password is incorrect")
+    st.stop()
+
+if authentication_status is None:
+    st.warning("Please enter your username and password")
+    st.stop()
+
+with st.sidebar:
+    authenticator.logout("Logout", "sidebar")
+    st.success(f"Welcome {name}")
 
 # =======================
 # CSS
