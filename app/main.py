@@ -142,9 +142,9 @@ if st.session_state.get("authentication_status") is not True:
     <div class="login-card">
         <div class="login-title">🤖 AI CV Analyzer</div>
 
-        <div class="login-subtitle">
+        <p class="login-subtitle">
             AI-Powered Career Intelligence Platform
-        </div>
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
