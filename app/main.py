@@ -1,11 +1,8 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-import streamlit_authenticator as stauth
-import yaml
 
-from yaml.loader import SafeLoader
-
+from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
 from skill_extractor import extract_skills
 from matcher import calculate_match_score
@@ -20,15 +17,13 @@ from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
 
-# =======================
-# PAGE CONFIG
-# =======================
 
 st.set_page_config(
     page_title="AI CV Analyzer",
     page_icon="🤖",
     layout="wide"
 )
+
 
 # =======================
 # GLOBAL CSS
@@ -92,8 +87,8 @@ st.markdown("""
 
 .login-card {
     max-width: 540px;
-    margin: 90px auto 25px auto;
-    padding: 40px;
+    margin: 40px auto 25px auto;
+    padding: 35px;
     border-radius: 28px;
     background: rgba(15, 23, 42, 0.94);
     border: 1px solid rgba(96, 165, 250, 0.35);
@@ -118,65 +113,84 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =======================
-# AUTH CONFIG
-# =======================
-
-with open("app/auth_config.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
-
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
 
 # =======================
-# LOGIN PAGE
+# AUTH SESSION
 # =======================
 
-if st.session_state.get("authentication_status") is not True:
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+
+# =======================
+# LOGIN / REGISTER
+# =======================
+
+if not st.session_state.logged_in:
 
     st.markdown("""
     <div class="login-card">
         <div class="login-title">🤖 AI CV Analyzer</div>
         <p class="login-subtitle">
-        AI-Powered Career Intelligence Platform
+            AI-Powered Career Intelligence Platform
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    authenticator.login(location="main")
+    login_tab, register_tab = st.tabs(["🔐 Login", "📝 Register"])
 
-    authentication_status = st.session_state.get("authentication_status")
+    with login_tab:
+        login_username = st.text_input("Username", key="login_username")
+        login_password = st.text_input("Password", type="password", key="login_password")
 
-    if authentication_status is False:
-        st.error("❌ Username or password is incorrect")
-        st.stop()
+        if st.button("Login", use_container_width=True):
+            if login_user(login_username, login_password):
+                st.session_state.logged_in = True
+                st.session_state.username = login_username
+                st.success("✅ Login successful")
+                st.rerun()
+            else:
+                st.error("❌ Invalid username or password")
 
-    if authentication_status is None:
-        st.warning("🔐 Please login to continue")
-        st.stop()
+    with register_tab:
+        new_username = st.text_input("Username", key="register_username")
+        new_email = st.text_input("Email", key="register_email")
+        new_password = st.text_input("Password", type="password", key="register_password")
+        confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
 
-name = st.session_state.get("name")
+        if st.button("Create Account", use_container_width=True):
+            if not new_username or not new_email or not new_password:
+                st.error("❌ Please fill all fields")
+            elif new_password != confirm_password:
+                st.error("❌ Passwords do not match")
+            else:
+                try:
+                    register_user(new_username, new_email, new_password)
+                    st.success("✅ Account created successfully. You can login now.")
+                except Exception:
+                    st.error("❌ Username or email already exists")
+
+    st.stop()
+
 
 # =======================
 # SIDEBAR
 # =======================
 
 with st.sidebar:
+    st.success(f"👋 Welcome, {st.session_state.username}")
 
-    st.success(f"👋 Welcome, {name}")
-
-    authenticator.logout("🚪 Logout", "sidebar")
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.rerun()
 
     st.title("⚙️ Dashboard")
-
     st.markdown("---")
-
     st.write("### 🚀 Features")
-
     st.write("✅ CV Skills Extraction")
     st.write("✅ ATS Match Analysis")
     st.write("✅ AI Career Prediction")
@@ -187,48 +201,42 @@ with st.sidebar:
     st.write("✅ Cover Letter Generator")
     st.write("✅ AI CV Improvements")
 
+
 # =======================
 # HEADER
 # =======================
 
-st.markdown(
-    "<div class='main-title'>🤖 AI CV Analyzer</div>",
-    unsafe_allow_html=True
-)
+st.markdown("<div class='main-title'>🤖 AI CV Analyzer</div>", unsafe_allow_html=True)
 
 st.markdown(
     "<div class='subtitle'>Analyze your CV with AI and discover the best career opportunities.</div>",
     unsafe_allow_html=True
 )
 
+
 # =======================
 # INPUT SECTION
 # =======================
 
 st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-st.markdown(
-    "<div class='section-title'>📥 Upload & Analyze</div>",
-    unsafe_allow_html=True
-)
+st.markdown("<div class='section-title'>📥 Upload & Analyze</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
 with col1:
-
     uploaded_file = st.file_uploader(
         "📄 Upload your CV PDF",
         type=["pdf"]
     )
 
 with col2:
-
     job_description = st.text_area(
         "💼 Paste Job Description Optional",
         height=180
     )
 
 st.markdown("</div>", unsafe_allow_html=True)
+
 
 # =======================
 # MAIN ANALYSIS
@@ -239,40 +247,24 @@ if uploaded_file is not None:
     with st.spinner("🚀 AI is analyzing your CV..."):
 
         cv_text = extract_text_from_pdf(uploaded_file)
-
         cv_skills = extract_skills(cv_text)
 
         job_recommendations = recommend_jobs(cv_skills)
-
         career_predictions = predict_career_path(cv_skills)
-
         interview_questions = generate_interview_questions(cv_skills)
-
-        cv_improvements = improve_cv(
-            cv_text,
-            cv_skills
-        )
+        cv_improvements = improve_cv(cv_text, cv_skills)
 
         score = 0
-
         job_skills = []
-
         missing_skills = []
-
         recommendations = []
-
         learning_roadmap = []
-
         cover_letter = ""
-
         job_search_queries = []
-
         morocco_jobs = []
-
         international_jobs = []
 
         if job_description.strip():
-
             job_skills = extract_skills(job_description)
 
             score = calculate_match_score(
@@ -287,7 +279,6 @@ if uploaded_file is not None:
             )
 
         if career_predictions:
-
             best_career_data = career_predictions[0]
 
             learning_roadmap = generate_roadmap(
@@ -299,13 +290,8 @@ if uploaded_file is not None:
                 best_career_data["career"]
             )
 
-            morocco_jobs = search_morocco_jobs(
-                job_search_queries
-            )
-
-            international_jobs = search_international_jobs(
-                job_search_queries
-            )
+            morocco_jobs = search_morocco_jobs(job_search_queries)
+            international_jobs = search_international_jobs(job_search_queries)
 
             cover_letter = generate_cover_letter(
                 cv_text,
@@ -315,39 +301,32 @@ if uploaded_file is not None:
                 score
             )
 
+
     # =======================
     # OVERVIEW
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>📊 Overview</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='section-title'>📊 Overview</div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
 
     c1.metric("Skills", len(cv_skills))
     c2.metric("Jobs", len(job_recommendations))
     c3.metric("Career Paths", len(career_predictions))
-    c4.metric("ATS Score", f"{score}%")
+    c4.metric("ATS Score", f"{score}%" if job_description.strip() else "Optional")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # SKILLS
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>✅ Skills Detected</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='section-title'>✅ Skills Detected</div>", unsafe_allow_html=True)
 
     if cv_skills:
-
         skills_html = ""
 
         for skill in cv_skills:
@@ -375,45 +354,38 @@ if uploaded_file is not None:
 
         st.plotly_chart(fig, use_container_width=True)
 
+    else:
+        st.warning("No skills detected.")
+
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # CAREER PATH
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>🧭 Career Path Prediction</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='section-title'>🧭 Career Path Prediction</div>", unsafe_allow_html=True)
 
     if career_predictions:
-
         best_career = career_predictions[0]
 
         st.markdown(f"## 🚀 {best_career['career']}")
-
         st.progress(int(best_career["score"]) / 100)
-
-        st.metric(
-            "Career Match Score",
-            f"{best_career['score']}%"
-        )
+        st.metric("Career Match Score", f"{best_career['score']}%")
 
         col1, col2 = st.columns(2)
 
         with col1:
-
             st.write("### ✅ Matched Skills")
-
-            for skill in best_career["matched_skills"]:
-                st.success(skill)
+            if best_career["matched_skills"]:
+                for skill in best_career["matched_skills"]:
+                    st.success(skill)
+            else:
+                st.info("No matched skills.")
 
         with col2:
-
             st.write("### 📚 Next Skills")
-
             for skill in best_career["next_skills"]:
                 st.warning(skill)
 
@@ -424,53 +396,41 @@ if uploaded_file is not None:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
     # =======================
     # CV IMPROVER
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='section-title'>🚀 AI CV Improvement Suggestions</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='section-title'>🚀 AI CV Improvement Suggestions</div>", unsafe_allow_html=True)
 
     if cv_improvements:
-
         for suggestion in cv_improvements:
             st.warning(suggestion)
-
     else:
         st.success("Your CV looks strong.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # REAL JOBS
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>🌍 Real Job Opportunities</div>", unsafe_allow_html=True)
 
-    st.markdown(
-        "<div class='section-title'>🌍 Real Job Opportunities</div>",
-        unsafe_allow_html=True
-    )
-
-    st.info(
-        "🔎 Search keywords used: " +
-        ", ".join(job_search_queries)
-    )
+    if job_search_queries:
+        st.info("🔎 Search keywords used: " + ", ".join(job_search_queries))
+    else:
+        st.info("🔎 No search keywords generated.")
 
     st.subheader("🇲🇦 Jobs in Morocco")
 
     if morocco_jobs:
-
         for job in morocco_jobs:
-
             st.markdown(f"### 💼 {job['title']}")
-
             st.write(f"🏢 Company: {job['company']}")
-
             st.write(f"📍 Location: {job['location']}")
 
             st.link_button(
@@ -480,24 +440,17 @@ if uploaded_file is not None:
             )
 
             st.markdown("---")
-
     else:
         st.warning("No Morocco jobs found.")
 
     st.subheader("🌐 International Jobs")
 
     if international_jobs:
-
         for job in international_jobs:
-
             country = job.get("country", "INT")
 
-            st.markdown(
-                f"### 💼 {job['title']} — {country}"
-            )
-
+            st.markdown(f"### 💼 {job['title']} — {country}")
             st.write(f"🏢 Company: {job['company']}")
-
             st.write(f"📍 Location: {job['location']}")
 
             st.link_button(
@@ -507,31 +460,29 @@ if uploaded_file is not None:
             )
 
             st.markdown("---")
-
     else:
         st.warning("No international jobs found.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # INTERVIEW QUESTIONS
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>🎤 AI Interview Questions</div>", unsafe_allow_html=True)
 
-    st.markdown(
-        "<div class='section-title'>🎤 AI Interview Questions</div>",
-        unsafe_allow_html=True
-    )
-
-    for skill, questions in interview_questions.items():
-
-        with st.expander(f"Questions for {skill}"):
-
-            for q in questions:
-                st.write("• " + q)
+    if interview_questions:
+        for skill, questions in interview_questions.items():
+            with st.expander(f"Questions for {skill}"):
+                for q in questions:
+                    st.write("• " + q)
+    else:
+        st.info("No interview questions generated.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # ATS
@@ -540,34 +491,33 @@ if uploaded_file is not None:
     if job_description.strip():
 
         st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-        st.markdown(
-            "<div class='section-title'>🎯 ATS Match Analysis</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<div class='section-title'>🎯 ATS Match Analysis</div>", unsafe_allow_html=True)
 
         st.progress(int(score) / 100)
-
         st.metric("ATS Score", f"{score}%")
 
         if score < 40:
             st.error("Weak Match")
-
         elif score < 70:
             st.warning("Medium Match")
-
         else:
             st.success("Strong Match")
 
         st.write("### ❌ Missing Skills")
 
-        for skill in missing_skills:
-            st.error(skill)
+        if missing_skills:
+            for skill in missing_skills:
+                st.error(skill)
+        else:
+            st.success("No missing skills detected.")
 
         st.write("### 💡 Recommendations")
 
-        for rec in recommendations:
-            st.warning(rec)
+        if recommendations:
+            for rec in recommendations:
+                st.warning(rec)
+        else:
+            st.info("No recommendations generated.")
 
         pdf_path = create_pdf_report(
             score,
@@ -578,7 +528,6 @@ if uploaded_file is not None:
         )
 
         with open(pdf_path, "rb") as pdf_file:
-
             st.download_button(
                 label="📥 Download PDF Report",
                 data=pdf_file,
@@ -589,32 +538,33 @@ if uploaded_file is not None:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+
     # =======================
     # COVER LETTER
     # =======================
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>✉️ AI Cover Letter Generator</div>", unsafe_allow_html=True)
 
-    st.markdown(
-        "<div class='section-title'>✉️ AI Cover Letter Generator</div>",
-        unsafe_allow_html=True
-    )
+    if cover_letter:
+        st.text_area(
+            "Generated Cover Letter",
+            cover_letter,
+            height=350
+        )
 
-    st.text_area(
-        "Generated Cover Letter",
-        cover_letter,
-        height=350
-    )
-
-    st.download_button(
-        label="📥 Download Cover Letter",
-        data=cover_letter,
-        file_name="cover_letter.txt",
-        mime="text/plain",
-        use_container_width=True
-    )
+        st.download_button(
+            label="📥 Download Cover Letter",
+            data=cover_letter,
+            file_name="cover_letter.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        st.info("Cover letter will be generated after CV analysis.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     # =======================
     # RAW CV
@@ -624,7 +574,6 @@ if uploaded_file is not None:
         st.write(cv_text)
 
 else:
-
     st.markdown("""
     <div class='card'>
         <h3>🚀 Start your AI analysis</h3>
