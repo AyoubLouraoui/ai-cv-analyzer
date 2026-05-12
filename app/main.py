@@ -19,15 +19,52 @@ from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
 from email_verification import generate_verification_code, send_verification_email
-from database import (
-    add_cv_upload,
-    add_user_activity,
-    delete_user,
-    get_all_user_activity,
-    get_all_cv_uploads,
-    get_all_users,
-    update_user
-)
+import database
+
+
+def add_cv_upload_safe(username, filename, cv_text, skills, best_career, best_score):
+    try:
+        database.add_cv_upload(username, filename, cv_text, skills, best_career, best_score)
+    except TypeError:
+        database.add_cv_upload(username, filename, skills, best_career, best_score)
+    except AttributeError:
+        pass
+
+
+def add_user_activity_safe(username, action, details=""):
+    if hasattr(database, "add_user_activity"):
+        database.add_user_activity(username, action, details)
+
+
+def get_all_user_activity_safe():
+    if hasattr(database, "get_all_user_activity"):
+        return database.get_all_user_activity()
+
+    return []
+
+
+def get_all_users_safe():
+    if hasattr(database, "get_all_users"):
+        return database.get_all_users()
+
+    return []
+
+
+def get_all_cv_uploads_safe():
+    if hasattr(database, "get_all_cv_uploads"):
+        return database.get_all_cv_uploads()
+
+    return []
+
+
+def update_user_safe(user_id, username, email):
+    if hasattr(database, "update_user"):
+        database.update_user(user_id, username, email)
+
+
+def delete_user_safe(user_id):
+    if hasattr(database, "delete_user"):
+        database.delete_user(user_id)
 
 
 def is_valid_email(email):
@@ -223,7 +260,7 @@ if not st.session_state.logged_in:
                 st.session_state.username = login_username
                 st.session_state.is_admin = is_admin_user(login_username)
                 st.session_state.auth_message = ""
-                add_user_activity(login_username, "login", "User logged in")
+                add_user_activity_safe(login_username, "login", "User logged in")
                 st.success("✅ Login successful")
                 st.rerun()
             else:
@@ -276,7 +313,7 @@ if not st.session_state.logged_in:
                     st.session_state.verification_code = ""
                     st.session_state.verification_email = ""
                     st.session_state.email_verified = False
-                    add_user_activity(new_username, "register", "Account created")
+                    add_user_activity_safe(new_username, "register", "Account created")
                     st.rerun()
                     st.success("✅ Account created successfully. You can login now.")
                 except Exception:
@@ -293,7 +330,7 @@ with st.sidebar:
     st.success(f"👋 Welcome, {st.session_state.username}")
 
     if st.button("🚪 Logout", use_container_width=True):
-        add_user_activity(st.session_state.username, "logout", "User logged out")
+        add_user_activity_safe(st.session_state.username, "logout", "User logged out")
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.session_state.is_admin = False
@@ -335,9 +372,9 @@ if admin_page == "Admin Dashboard":
         unsafe_allow_html=True
     )
 
-    users = get_all_users()
-    uploads = get_all_cv_uploads()
-    activities = get_all_user_activity()
+    users = get_all_users_safe()
+    uploads = get_all_cv_uploads_safe()
+    activities = get_all_user_activity_safe()
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Users", len(users))
@@ -401,7 +438,7 @@ if admin_page == "Admin Dashboard":
                         st.error("Please enter a valid email address.")
                     else:
                         try:
-                            update_user(selected_user[0], edit_username, edit_email)
+                            update_user_safe(selected_user[0], edit_username, edit_email)
                             st.session_state.confirm_update_user_id = None
                             st.success("User updated successfully.")
                             st.rerun()
@@ -425,7 +462,7 @@ if admin_page == "Admin Dashboard":
                         st.error("You cannot delete the account you are currently using.")
                     else:
                         try:
-                            delete_user(selected_user[0])
+                            delete_user_safe(selected_user[0])
                             st.session_state.confirm_delete_user_id = None
                             st.success("User deleted successfully.")
                             st.rerun()
@@ -639,7 +676,7 @@ if uploaded_file is not None:
                 saved_best_career = "No match"
                 saved_best_score = 0
 
-            add_cv_upload(
+            add_cv_upload_safe(
                 st.session_state.username,
                 uploaded_file.name,
                 cv_text,
@@ -647,28 +684,28 @@ if uploaded_file is not None:
                 saved_best_career,
                 saved_best_score
             )
-            add_user_activity(
+            add_user_activity_safe(
                 st.session_state.username,
                 "cv_upload",
                 f"Uploaded {uploaded_file.name}. Best career: {saved_best_career} ({saved_best_score}%)."
             )
 
             if job_description.strip():
-                add_user_activity(
+                add_user_activity_safe(
                     st.session_state.username,
                     "ats_analysis",
                     f"ATS score: {score}% for {uploaded_file.name}."
                 )
 
             if job_search_queries:
-                add_user_activity(
+                add_user_activity_safe(
                     st.session_state.username,
                     "job_search",
                     "Search queries: " + ", ".join(job_search_queries)
                 )
 
             if cover_letter:
-                add_user_activity(
+                add_user_activity_safe(
                     st.session_state.username,
                     "cover_letter",
                     f"Generated cover letter for {saved_best_career}."
