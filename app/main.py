@@ -464,6 +464,8 @@ if uploaded_file is not None:
             st.write(f"🏢 Company: {job['company']}")
             st.write(f"📍 Location: {job['location']}")
 
+            st.write(f"Source: {job.get('source', 'API')}")
+
             st.link_button(
                 "🔗 Apply Now",
                 job["url"],
