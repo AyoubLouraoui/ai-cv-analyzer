@@ -1,9 +1,20 @@
 credentials:
   usernames:
+
     admin:
       email: admin@example.com
-      name: Ayoub User
+      name: Admin User
+      password: abc123
+
+    ayoub:
+      email: ayoublouraoui@gmail.com
+      name: Ayoub
       password: ayoub2005
+
+    fati:
+      email: fatimazahralouraoui@gmail.com
+      name: Fati
+      password: fati2001
 
 cookie:
   expiry_days: 30
