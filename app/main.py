@@ -13,6 +13,7 @@ from interview_generator import generate_interview_questions
 from roadmap_generator import generate_roadmap
 from cover_letter_generator import generate_cover_letter
 from job_api import search_morocco_jobs, search_international_jobs
+from job_query_builder import build_job_queries
 
 st.set_page_config(
     page_title="AI CV Analyzer",
@@ -172,7 +173,7 @@ if uploaded_file is not None:
         recommendations = []
         learning_roadmap = []
         cover_letter = ""
-        job_search_query = ""
+        job_search_queries = []
         morocco_jobs = []
         international_jobs = []
 
@@ -199,14 +200,14 @@ if uploaded_file is not None:
                 best_career_data["career"]
             )
 
-            job_search_query = " ".join(cv_skills[:3]) if cv_skills else best_career_data["career"]
+            job_search_queries = build_job_queries(cv_skills, best_career_data["career"])
 
             morocco_jobs = search_morocco_jobs(
-                job_search_query
+                job_search_queries
             )
 
             international_jobs = search_international_jobs(
-                job_search_query
+                job_search_queries
             )
 
             cover_letter = generate_cover_letter(
@@ -509,7 +510,7 @@ if uploaded_file is not None:
         unsafe_allow_html=True
     )
 
-    st.info(f"🔎 Search keywords used: {job_search_query}")
+    st.info("🔎 Search keywords used: " + ", ".join(job_search_queries))
 
     st.subheader("🇲🇦 Jobs in Morocco")
 

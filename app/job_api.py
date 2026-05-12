@@ -1,10 +1,4 @@
-import requests
-
-APP_ID = "4562175b"
-APP_KEY = "ae78902d3669d5730b5979629b75e177"
-
-
-def search_jobs_by_country(query="Data Engineer", country="gb", results_per_page=5):
+def search_jobs_by_country(query, country="gb", results_per_page=5):
     url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
 
     params = {
@@ -28,27 +22,44 @@ def search_jobs_by_country(query="Data Engineer", country="gb", results_per_page
             "title": item.get("title", "N/A"),
             "company": item.get("company", {}).get("display_name", "N/A"),
             "location": item.get("location", {}).get("display_name", "N/A"),
-            "url": item.get("redirect_url", "#")
+            "url": item.get("redirect_url", "#"),
+            "query": query
         })
 
     return jobs
 
 
-def search_morocco_jobs(query="Data Engineer"):
-    return search_jobs_by_country(query, country="ma", results_per_page=5)
-
-
-def search_international_jobs(query="Data Engineer"):
-    countries = ["gb", "us", "ca"]
-
+def search_multiple_jobs(queries, countries, max_jobs=8):
     all_jobs = []
+    seen_urls = set()
 
     for country in countries:
-        jobs = search_jobs_by_country(query, country=country, results_per_page=3)
+        for query in queries:
+            jobs = search_jobs_by_country(query, country=country, results_per_page=5)
 
-        for job in jobs:
-            job["country"] = country.upper()
+            for job in jobs:
+                if job["url"] not in seen_urls:
+                    job["country"] = country.upper()
+                    all_jobs.append(job)
+                    seen_urls.add(job["url"])
 
-        all_jobs.extend(jobs)
+                if len(all_jobs) >= max_jobs:
+                    return all_jobs
 
-    return all_jobs[:8]
+    return all_jobs
+
+
+def search_morocco_jobs(queries):
+    return search_multiple_jobs(
+        queries,
+        countries=["ma"],
+        max_jobs=6
+    )
+
+
+def search_international_jobs(queries):
+    return search_multiple_jobs(
+        queries,
+        countries=["gb", "us", "ca"],
+        max_jobs=8
+    )
