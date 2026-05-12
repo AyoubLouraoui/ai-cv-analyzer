@@ -12,6 +12,7 @@ from pdf_report import create_pdf_report
 from career_path import predict_career_path
 from interview_generator import generate_interview_questions
 from roadmap_generator import generate_roadmap
+from cover_letter_generator import generate_cover_letter
 
 st.set_page_config(
     page_title="AI CV Analyzer",
@@ -67,17 +68,6 @@ st.markdown("""
     color: #f8fafc;
 }
 
-.badge {
-    display: inline-block;
-    padding: 8px 14px;
-    margin: 5px;
-    border-radius: 999px;
-    background: rgba(59, 130, 246, 0.18);
-    border: 1px solid rgba(96, 165, 250, 0.35);
-    color: #bfdbfe;
-    font-weight: 600;
-}
-
 .good-badge {
     display: inline-block;
     padding: 8px 14px;
@@ -86,28 +76,6 @@ st.markdown("""
     background: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(74, 222, 128, 0.35);
     color: #bbf7d0;
-    font-weight: 600;
-}
-
-.bad-badge {
-    display: inline-block;
-    padding: 8px 14px;
-    margin: 5px;
-    border-radius: 999px;
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(248, 113, 113, 0.35);
-    color: #fecaca;
-    font-weight: 600;
-}
-
-.warning-badge {
-    display: inline-block;
-    padding: 8px 14px;
-    margin: 5px;
-    border-radius: 999px;
-    background: rgba(245, 158, 11, 0.15);
-    border: 1px solid rgba(251, 191, 36, 0.35);
-    color: #fde68a;
     font-weight: 600;
 }
 
@@ -126,7 +94,7 @@ hr {
 
 st.markdown("<div class='main-title'>🤖 AI CV Analyzer</div>", unsafe_allow_html=True)
 st.markdown(
-    "<div class='subtitle'>Analyze your CV, discover your best career path, get job recommendations, interview questions and a professional report.</div>",
+    "<div class='subtitle'>Analyze your CV, discover your best career path, get job recommendations, interview questions, cover letter and a professional report.</div>",
     unsafe_allow_html=True
 )
 
@@ -148,16 +116,16 @@ with st.sidebar:
     st.write("✅ Interview Questions")
     st.write("✅ ATS Score")
     st.write("✅ PDF Report")
+    st.write("✅ Cover Letter Generator")
 
     st.markdown("---")
-    st.info("Tip: Add a job description to activate ATS analysis.")
+    st.info("Tip: Add a job description to activate ATS analysis and cover letter generation.")
 
 # =======================
 # INPUT CARD
 # =======================
 
 st.markdown("<div class='card'>", unsafe_allow_html=True)
-
 st.markdown("<div class='section-title'>📥 Upload & Analyze</div>", unsafe_allow_html=True)
 
 col_upload, col_job = st.columns([1, 1])
@@ -197,10 +165,17 @@ if uploaded_file is not None:
         missing_skills = []
         recommendations = []
         learning_roadmap = []
+        cover_letter = ""
 
         if career_predictions:
             best_career_data = career_predictions[0]
             learning_roadmap = generate_roadmap(best_career_data["career"])
+
+            cover_letter = generate_cover_letter(
+                cv_skills,
+                best_career_data["career"],
+                job_description
+            )
 
         if job_description.strip():
             job_skills = extract_skills(job_description)
@@ -220,15 +195,10 @@ if uploaded_file is not None:
     st.markdown("<div class='section-title'>📊 Global Overview</div>", unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-
     m1.metric("Skills Detected", len(cv_skills))
     m2.metric("Recommended Jobs", len(job_recommendations))
     m3.metric("Career Paths", len(career_predictions))
-
-    if job_description.strip():
-        m4.metric("ATS Score", f"{score}%")
-    else:
-        m4.metric("ATS Score", "Optional")
+    m4.metric("ATS Score", f"{score}%" if job_description.strip() else "Optional")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -458,6 +428,32 @@ if uploaded_file is not None:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # =======================
+    # COVER LETTER GENERATOR
+    # =======================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>✉️ AI Cover Letter Generator</div>", unsafe_allow_html=True)
+
+    if cover_letter:
+        st.text_area(
+            "Generated Cover Letter",
+            cover_letter,
+            height=350
+        )
+
+        st.download_button(
+            label="📥 Download Cover Letter",
+            data=cover_letter,
+            file_name="cover_letter.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        st.info("Cover letter will be generated after CV analysis.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # =======================
     # RAW CV TEXT
     # =======================
 
@@ -468,6 +464,6 @@ else:
     st.markdown("""
     <div class='card'>
         <h3>🚀 Start your AI analysis</h3>
-        <p>Upload your CV PDF to generate skills, job recommendations, career path, roadmap and interview questions.</p>
+        <p>Upload your CV PDF to generate skills, job recommendations, career path, roadmap, interview questions and cover letter.</p>
     </div>
     """, unsafe_allow_html=True)
