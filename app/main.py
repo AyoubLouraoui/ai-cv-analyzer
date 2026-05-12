@@ -124,6 +124,9 @@ if "logged_in" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
+if "auth_message" not in st.session_state:
+    st.session_state.auth_message = ""
+
 
 # =======================
 # LOGIN / REGISTER
@@ -142,6 +145,9 @@ if not st.session_state.logged_in:
 
     login_tab, register_tab = st.tabs(["🔐 Login", "📝 Register"])
 
+    if st.session_state.auth_message:
+        st.success(st.session_state.auth_message)
+
     with login_tab:
         login_username = st.text_input("Username", key="login_username")
         login_password = st.text_input("Password", type="password", key="login_password")
@@ -150,6 +156,7 @@ if not st.session_state.logged_in:
             if login_user(login_username, login_password):
                 st.session_state.logged_in = True
                 st.session_state.username = login_username
+                st.session_state.auth_message = ""
                 st.success("✅ Login successful")
                 st.rerun()
             else:
@@ -169,6 +176,8 @@ if not st.session_state.logged_in:
             else:
                 try:
                     register_user(new_username, new_email, new_password)
+                    st.session_state.auth_message = "Account created successfully. You can login now."
+                    st.rerun()
                     st.success("✅ Account created successfully. You can login now.")
                 except Exception:
                     st.error("❌ Username or email already exists")
