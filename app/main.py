@@ -454,10 +454,6 @@ def complete_direct_oauth(provider, code):
 
 
 def start_social_login(provider):
-    if provider in ["github", "facebook"]:
-        start_direct_oauth(provider)
-        return
-
     config_errors = get_social_login_config_errors(provider)
     provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
 
@@ -1343,6 +1339,12 @@ h3 {
     justify-content: center !important;
     padding: 0 !important;
     transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease !important;
+}
+
+.st-key-google_login button,
+.st-key-google_login a,
+.st-key-google_reg button,
+.st-key-google_reg a {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -1352,7 +1354,11 @@ h3 {
 .st-key-google_login button:hover,
 .st-key-google_login a:hover,
 .st-key-google_reg button:hover,
-.st-key-google_reg a:hover {
+.st-key-google_reg a:hover,
+.st-key-github_login button:hover,
+.st-key-github_reg button:hover,
+.st-key-fb_login button:hover,
+.st-key-fb_reg button:hover {
     transform: translateY(-1px) !important;
     opacity: 0.88 !important;
     border-color: rgba(11,217,160,0.36) !important;
@@ -1672,9 +1678,11 @@ if not st.session_state.logged_in:
                 if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
                     start_social_login("google")
             with gh_col:
-                render_direct_oauth_button("github", "GitHub")
+                if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
+                    start_social_login("github")
             with fb_col:
-                render_direct_oauth_button("facebook", "Facebook")
+                if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
+                    start_social_login("facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1744,9 +1752,11 @@ if not st.session_state.logged_in:
                 if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                     start_social_login("google")
             with gh2_col:
-                render_direct_oauth_button("github", "Sign up GitHub")
+                if st.button("Sign up GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
+                    start_social_login("github")
             with fb2_col:
-                render_direct_oauth_button("facebook", "Sign up Facebook")
+                if st.button("Sign up Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
+                    start_social_login("facebook")
 
     st.stop()
 
