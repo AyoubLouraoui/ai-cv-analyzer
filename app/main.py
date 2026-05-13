@@ -580,6 +580,408 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+.stApp {
+    background:
+        radial-gradient(circle at 15% 10%, rgba(11,217,160,0.09), transparent 28%),
+        radial-gradient(circle at 85% 8%, rgba(255,165,50,0.07), transparent 24%),
+        linear-gradient(135deg, #040a14 0%, #070f1c 50%, #0a1220 100%);
+    color: #e2eaf5;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.gs-section {
+    max-width: 900px;
+    margin: 36px auto 0;
+    text-align: center;
+}
+
+.gs-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(11,217,160,0.25);
+    background: rgba(11,217,160,0.06);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #63ffca;
+    margin-bottom: 14px;
+}
+
+.gs-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    color: #f0f6ff;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    margin: 0 0 10px;
+}
+
+.gs-headline span {
+    background: linear-gradient(90deg, #0bd9a0 0%, #ffb43c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.gs-sub {
+    font-size: 14px;
+    color: #6f8499;
+    margin: 0 0 20px;
+    line-height: 1.6;
+}
+
+.gs-perks {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.gs-perk {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #8fa8be;
+}
+
+.gs-perk-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0bd9a0;
+    flex-shrink: 0;
+}
+
+.auth-page-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-width: 900px;
+    margin: 32px auto 22px;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(148,163,184,0.12);
+}
+
+.auth-left {
+    background: linear-gradient(160deg, #071120 0%, #0a1929 60%, #081420 100%);
+    padding: 44px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid rgba(148,163,184,0.08);
+}
+
+.auth-left-card {
+    border-radius: 24px;
+    border: 1px solid rgba(148,163,184,0.12);
+    min-height: 520px;
+}
+
+.auth-left::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(11,217,160,0.14) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+.auth-left::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,165,233,0.10) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+.auth-logo-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0bd9a0, #0ea5e9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+}
+
+.auth-brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0f6ff;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0 0 8px;
+}
+
+.auth-brand-name span {
+    background: linear-gradient(90deg, #0bd9a0, #0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.auth-brand-desc {
+    font-size: 13px;
+    color: #7a94ae;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.auth-feat-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.auth-feat-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #9fb2c8;
+}
+
+.auth-feat-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: rgba(11,217,160,0.10);
+    border: 1px solid rgba(11,217,160,0.20);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #0bd9a0;
+}
+
+.auth-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.auth-stat-chip {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.10);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.auth-stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #e2eaf5;
+    line-height: 1;
+}
+
+.auth-stat-accent {
+    color: #0bd9a0;
+    font-size: 14px;
+}
+
+.auth-stat-lbl {
+    font-size: 11px;
+    color: #8fa8be;
+    margin-top: 3px;
+}
+
+.auth-right {
+    background: #060e1c;
+    padding: 40px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 460px;
+}
+
+.auth-right-note {
+    max-width: 280px;
+    color: #7a94ae;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+.auth-free-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(11,217,160,0.22);
+    background: rgba(11,217,160,0.06);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #0bd9a0;
+    margin-bottom: 18px;
+}
+
+.auth-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0bd9a0;
+    display: inline-block;
+    animation: auth-pulse 2s ease-in-out infinite;
+}
+
+@keyframes auth-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.65); }
+}
+
+.card {
+    background: rgba(9, 18, 32, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.section-title,
+h1,
+h2,
+h3 {
+    font-family: 'Syne', sans-serif;
+    color: #f0f6ff;
+}
+
+.section-title {
+    font-size: 20px;
+}
+
+.good-badge {
+    border-radius: 10px;
+    background: rgba(11,217,160,0.12);
+    border: 1px solid rgba(11,217,160,0.28);
+    font-size: 13px;
+}
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #06101e 0%, #0a1625 100%);
+    border-right: 1px solid rgba(148,163,184,0.12);
+}
+
+.stButton > button,
+.stDownloadButton > button,
+[data-testid="stLinkButton"] a {
+    border-radius: 10px !important;
+    border: 1px solid rgba(11,217,160,0.36) !important;
+    background: linear-gradient(135deg, #0bd9a0 0%, #0ea5e9 100%) !important;
+    color: #020d18 !important;
+    font-weight: 800 !important;
+    min-height: 42px;
+    transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover,
+[data-testid="stLinkButton"] a:hover {
+    transform: translateY(-1px);
+    opacity: 0.88;
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"] > div {
+    background: rgba(2,6,23,0.72) !important;
+    border: 1px solid rgba(148,163,184,0.18) !important;
+    border-radius: 10px !important;
+    color: #e2eaf5 !important;
+}
+
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: rgba(11,217,160,0.55) !important;
+    box-shadow: 0 0 0 3px rgba(11,217,160,0.10) !important;
+}
+
+.app-hero {
+    border-radius: 20px;
+    border: 1px solid rgba(11,217,160,0.18);
+    background:
+        linear-gradient(135deg, rgba(10,20,38,0.94), rgba(12,60,100,0.34)),
+        linear-gradient(90deg, rgba(11,217,160,0.12), rgba(251,191,36,0.08));
+}
+
+.hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 4vw, 56px);
+    line-height: 1.05;
+    font-weight: 800;
+}
+
+.hero-copy {
+    color: #7a94ae;
+    font-size: 15px;
+}
+
+.hero-title span {
+    color: #fbbf24;
+}
+
+.sidebar-brand {
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(11,217,160,0.14), rgba(10,20,38,0.92));
+    border: 1px solid rgba(11,217,160,0.16);
+}
+
+.sidebar-brand-title {
+    color: #f0f6ff;
+    font-size: 17px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.sidebar-brand-subtitle {
+    color: #8fa8be;
+    font-size: 12px;
+    margin: 5px 0 0;
+}
+
+@media (max-width: 760px) {
+    .auth-page-wrap {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-left {
+        display: none;
+    }
+
+    .auth-right {
+        min-height: 180px;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # =======================
 # AUTH SESSION
@@ -625,113 +1027,180 @@ if not st.session_state.logged_in and is_social_login_active():
 # =======================
 
 if not st.session_state.logged_in:
-
     st.markdown("""
-    <div class="login-card">
-        <div class="login-title">🤖 AI CV Analyzer</div>
-        <p class="login-subtitle">
-            AI-Powered Career Intelligence Platform
+    <div class="gs-section">
+        <div class="gs-badge">
+            <span class="auth-pulse"></span>
+            Free forever &nbsp;·&nbsp; No credit card needed
+        </div>
+        <h1 class="gs-headline">
+            Your CV, <span>analyzed.<br>optimized. hired.</span>
+        </h1>
+        <p class="gs-sub">
+            Join thousands of professionals who use AI CV Analyzer<br>
+            to land jobs in Morocco and around the world.
         </p>
+        <div class="gs-perks">
+            <span class="gs-perk"><span class="gs-perk-dot"></span> ATS scoring</span>
+            <span class="gs-perk"><span class="gs-perk-dot"></span> AI cover letter</span>
+            <span class="gs-perk"><span class="gs-perk-dot"></span> Career paths</span>
+            <span class="gs-perk"><span class="gs-perk-dot"></span> Morocco &amp; global jobs</span>
+            <span class="gs-perk"><span class="gs-perk-dot"></span> Interview prep</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    login_tab, register_tab = st.tabs(["🔐 Login", "📝 Register"])
+    auth_left_col, right_col = st.columns([1, 1], gap="large")
 
-    if st.session_state.auth_message:
-        st.success(st.session_state.auth_message)
+    with auth_left_col:
+        st.markdown("""
+        <div class="auth-left auth-left-card">
+            <div>
+                <div class="auth-logo-box">🤖</div>
+                <div class="auth-brand-name">AI CV <span>Analyzer</span></div>
+                <p class="auth-brand-desc">Career intelligence platform<br>built for the modern job seeker.</p>
+            </div>
+            <ul class="auth-feat-list">
+                <li><span class="auth-feat-check">✓</span> ATS score &amp; keyword analysis</li>
+                <li><span class="auth-feat-check">✓</span> AI career path prediction</li>
+                <li><span class="auth-feat-check">✓</span> Smart cover letter generator</li>
+                <li><span class="auth-feat-check">✓</span> Morocco &amp; global job matching</li>
+                <li><span class="auth-feat-check">✓</span> Interview prep &amp; skill roadmap</li>
+            </ul>
+            <div class="auth-stats-grid">
+                <div class="auth-stat-chip">
+                    <div class="auth-stat-num">12<span class="auth-stat-accent">k+</span></div>
+                    <div class="auth-stat-lbl">CVs analyzed</div>
+                </div>
+                <div class="auth-stat-chip">
+                    <div class="auth-stat-num">94<span class="auth-stat-accent">%</span></div>
+                    <div class="auth-stat-lbl">Match accuracy</div>
+                </div>
+                <div class="auth-stat-chip">
+                    <div class="auth-stat-num">8</div>
+                    <div class="auth-stat-lbl">AI features</div>
+                </div>
+                <div class="auth-stat-chip">
+                    <div class="auth-stat-num">🇲🇦🌍</div>
+                    <div class="auth-stat-lbl">Job markets</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
-    st.write("Continue with social account")
+    with right_col:
+        st.markdown(
+            '<div class="auth-free-badge"><span class="auth-pulse"></span>&nbsp; Free · No credit card needed</div>',
+            unsafe_allow_html=True
+        )
 
-    social_col1, social_col2 = st.columns(2)
+        login_tab, register_tab = st.tabs(["🔐 Sign in", "📝 Create account"])
 
-    with social_col1:
-        if st.button("Continue with Google", use_container_width=True):
-            start_social_login("google")
+        if st.session_state.auth_message:
+            st.success(st.session_state.auth_message)
 
-    with social_col2:
-        if st.button("Continue with GitHub/Facebook", use_container_width=True):
-            start_social_login("auth0")
+        with login_tab:
+            login_username = st.text_input("Username", key="login_username", placeholder="your_username")
+            login_password = st.text_input("Password", type="password", key="login_password", placeholder="••••••••")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    with login_tab:
-        st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
-        login_username = st.text_input("Username", key="login_username")
-        login_password = st.text_input("Password", type="password", key="login_password")
-
-        if st.button("Login", use_container_width=True):
-            if login_user(login_username, login_password) or is_admin_login(login_username, login_password):
-                st.session_state.logged_in = True
-                st.session_state.username = login_username
-                st.session_state.is_admin = is_admin_user(login_username)
-                st.session_state.auth_message = ""
-                add_user_activity_safe(login_username, "login", "User logged in")
-                st.success("✅ Login successful")
-                st.rerun()
-            else:
-                st.error("❌ Invalid username or password")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with register_tab:
-        st.markdown("<div class='auth-form'>", unsafe_allow_html=True)
-        new_username = st.text_input("Username", key="register_username")
-        new_email = st.text_input("Email", key="register_email")
-        new_password = st.text_input("Password", type="password", key="register_password")
-        confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
-        verification_code = st.text_input("Email Verification Code", key="register_verification_code")
-
-        if st.button("Send Verification Code", use_container_width=True):
-            if not new_email:
-                st.error("Please enter your email first.")
-            elif not is_valid_email(new_email):
-                st.error("Please enter a valid email address.")
-            else:
-                code = generate_verification_code()
-                sent, message = send_verification_email(new_email, code)
-
-                if sent:
-                    st.session_state.verification_code = code
-                    st.session_state.verification_email = new_email.strip().lower()
-                    st.session_state.email_verified = False
-                    st.success(message)
-                else:
-                    st.error(message)
-
-        if st.button("Create Account", use_container_width=True):
-            if not new_username or not new_email or not new_password:
-                st.error("❌ Please fill all fields")
-            elif not is_valid_email(new_email):
-                st.error("Please enter a valid email address.")
-            elif new_password != confirm_password:
-                st.error("❌ Passwords do not match")
-            elif (
-                not st.session_state.verification_code
-                or st.session_state.verification_email != new_email.strip().lower()
-                or verification_code.strip() != st.session_state.verification_code
-            ):
-                st.error("Please verify your email with the code we sent you.")
-            else:
-                try:
-                    register_user(new_username, new_email, new_password)
+            if st.button("Go to dashboard →", use_container_width=True, key="btn_login"):
+                if login_user(login_username, login_password) or is_admin_login(login_username, login_password):
                     st.session_state.logged_in = True
-                    st.session_state.username = new_username
-                    st.session_state.is_admin = is_admin_user(new_username)
+                    st.session_state.username = login_username
+                    st.session_state.is_admin = is_admin_user(login_username)
                     st.session_state.auth_message = ""
-                    st.session_state.verification_code = ""
-                    st.session_state.verification_email = ""
-                    st.session_state.email_verified = False
-                    add_user_activity_safe(new_username, "register", "Account created")
+                    add_user_activity_safe(login_username, "login", "User logged in")
                     st.rerun()
-                    st.success("✅ Account created successfully. You can login now.")
-                except Exception:
-                    st.error("❌ Username or email already exists")
+                else:
+                    st.error("❌ Invalid username or password")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='text-align:center;margin:10px 0 8px;font-size:11.5px;color:#6f8499;letter-spacing:0.08em;'>OR CONTINUE WITH</div>",
+                unsafe_allow_html=True
+            )
+
+            g_col, gh_col, fb_col = st.columns(3)
+            with g_col:
+                if st.button("🌐 Google", use_container_width=True, key="google_login"):
+                    start_social_login("google")
+            with gh_col:
+                if st.button("GitHub", use_container_width=True, key="github_login"):
+                    start_social_login("auth0")
+            with fb_col:
+                if st.button("Facebook", use_container_width=True, key="fb_login"):
+                    start_social_login("auth0")
+
+        with register_tab:
+            new_username = st.text_input("Username", key="register_username", placeholder="your_username")
+            new_email = st.text_input("Email", key="register_email", placeholder="you@example.com")
+            new_password = st.text_input("Password", type="password", key="register_password", placeholder="••••••••")
+            confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password", placeholder="••••••••")
+            verification_code = st.text_input("Email Verification Code", key="register_verification_code", placeholder="6-digit code")
+
+            send_col, _ = st.columns([1, 0.01])
+            with send_col:
+                if st.button("Send verification code", use_container_width=True, key="btn_send_code"):
+                    if not new_email:
+                        st.error("Please enter your email first.")
+                    elif not is_valid_email(new_email):
+                        st.error("Please enter a valid email address.")
+                    else:
+                        code = generate_verification_code()
+                        sent, message = send_verification_email(new_email, code)
+
+                        if sent:
+                            st.session_state.verification_code = code
+                            st.session_state.verification_email = new_email.strip().lower()
+                            st.session_state.email_verified = False
+                            st.success(message)
+                        else:
+                            st.error(message)
+
+            if st.button("Create my account →", use_container_width=True, key="btn_register"):
+                if not new_username or not new_email or not new_password:
+                    st.error("❌ Please fill all fields")
+                elif not is_valid_email(new_email):
+                    st.error("Please enter a valid email address.")
+                elif new_password != confirm_password:
+                    st.error("❌ Passwords do not match")
+                elif (
+                    not st.session_state.verification_code
+                    or st.session_state.verification_email != new_email.strip().lower()
+                    or verification_code.strip() != st.session_state.verification_code
+                ):
+                    st.error("Please verify your email with the code we sent you.")
+                else:
+                    try:
+                        register_user(new_username, new_email, new_password)
+                        st.session_state.logged_in = True
+                        st.session_state.username = new_username
+                        st.session_state.is_admin = is_admin_user(new_username)
+                        st.session_state.auth_message = ""
+                        st.session_state.verification_code = ""
+                        st.session_state.verification_email = ""
+                        st.session_state.email_verified = False
+                        add_user_activity_safe(new_username, "register", "Account created")
+                        st.rerun()
+                    except Exception:
+                        st.error("❌ Username or email already exists")
+
+            st.markdown(
+                "<div style='text-align:center;margin:10px 0 8px;font-size:11.5px;color:#6f8499;letter-spacing:0.08em;'>OR CONTINUE WITH</div>",
+                unsafe_allow_html=True
+            )
+
+            g2_col, gh2_col, fb2_col = st.columns(3)
+            with g2_col:
+                if st.button("🌐 Google", use_container_width=True, key="google_reg"):
+                    start_social_login("google")
+            with gh2_col:
+                if st.button("GitHub", use_container_width=True, key="github_reg"):
+                    start_social_login("auth0")
+            with fb2_col:
+                if st.button("Facebook", use_container_width=True, key="fb_reg"):
+                    start_social_login("auth0")
 
     st.stop()
-
 
 # =======================
 # SIDEBAR
@@ -1012,7 +1481,7 @@ st.markdown(
     """
     <div class="app-hero">
         <div class="hero-kicker">AI CAREER INTELLIGENCE</div>
-        <h1 class="hero-title">Turn any CV into a clear career plan.</h1>
+        <h1 class="hero-title">Turn any CV into a clear <span>career plan.</span></h1>
         <p class="hero-copy">
             Upload a resume and get skill extraction, job recommendations,
             learning roadmaps, interview questions, ATS feedback, and live job discovery.
