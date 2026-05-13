@@ -4,7 +4,7 @@ import pandas as pd
 import re
 import json
 import secrets as py_secrets
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -22,6 +22,7 @@ from job_query_builder import build_job_queries
 from cv_improver import improve_cv
 from email_verification import generate_verification_code, send_verification_email
 import database
+import requests
 
 
 def add_cv_upload_safe(username, filename, cv_text, skills, best_career, best_score):
@@ -160,6 +161,34 @@ def ensure_social_user():
     return username
 
 
+def ensure_social_user_from_profile(email, name="", subject=""):
+    if not email:
+        email = f"{subject or py_secrets.token_hex(8)}@social.local"
+
+    existing_user = get_user_by_email_safe(email)
+
+    if existing_user:
+        return existing_user[1]
+
+    username = make_social_username(email, name)
+    base_username = username
+    counter = 1
+
+    while database.get_user(username) is not None:
+        counter += 1
+        username = f"{base_username}_{counter}"
+
+    register_user(
+        username,
+        email,
+        py_secrets.token_urlsafe(32)
+    )
+
+    add_user_activity_safe(username, "social_register", f"Account created with Google login: {email}")
+
+    return username
+
+
 def complete_social_login():
     username = ensure_social_user()
     st.session_state.logged_in = True
@@ -170,7 +199,25 @@ def complete_social_login():
     st.rerun()
 
 
+def complete_google_login(profile):
+    email = profile.get("email", "")
+    name = profile.get("name", "") or profile.get("given_name", "")
+    subject = profile.get("sub", "")
+    username = ensure_social_user_from_profile(email, name, subject)
+    st.session_state.logged_in = True
+    st.session_state.username = username
+    st.session_state.is_admin = is_admin_user(username)
+    st.session_state.auth_message = ""
+    add_user_activity_safe(username, "social_login", "User logged in with Google")
+    st.query_params.clear()
+    st.rerun()
+
+
 def start_social_login(provider):
+    if provider == "google":
+        st.error("Use the Google logo link. The built-in Google callback is disabled.")
+        return
+
     config_errors = get_social_login_config_errors(provider)
     provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
 
@@ -211,6 +258,18 @@ def get_social_login_config_errors(provider):
     provider_config = auth_config.get(provider, {})
     config_errors = []
 
+    if provider == "google":
+        for field in ["client_id", "client_secret"]:
+            if not provider_config.get(field):
+                config_errors.append(f"Missing: auth.google.{field}")
+
+        google_redirect_uri = get_google_redirect_uri()
+
+        if not google_redirect_uri:
+            config_errors.append("Could not detect the Google redirect URI for this app.")
+
+        return config_errors
+
     for field in ["redirect_uri", "cookie_secret"]:
         if not auth_config.get(field):
             config_errors.append(f"Missing: auth.{field}")
@@ -235,11 +294,34 @@ def get_social_login_config_errors(provider):
     return config_errors
 
 
+def get_current_app_root_uri():
+    try:
+        current_url = st.context.url
+    except Exception:
+        current_url = None
+
+    if not current_url:
+        current_url = get_current_url_from_headers()
+
+    if not current_url:
+        return None
+
+    parsed_url = urlparse(current_url)
+
+    if not parsed_url.scheme or not parsed_url.netloc:
+        return None
+
+    return f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+
 def get_current_oauth_callback_uri():
     try:
         current_url = st.context.url
     except Exception:
-        return None
+        current_url = None
+
+    if not current_url:
+        current_url = get_current_url_from_headers()
 
     if not current_url:
         return None
@@ -253,6 +335,169 @@ def get_current_oauth_callback_uri():
     callback_path = f"/{base_path}/oauth2callback" if base_path else "/oauth2callback"
 
     return f"{parsed_url.scheme}://{parsed_url.netloc}{callback_path}"
+
+
+def get_google_redirect_uri():
+    provider_config = get_auth_secrets().get("google", {})
+
+    return provider_config.get("redirect_uri") or get_current_app_root_uri()
+
+
+def get_google_login_url():
+    config_errors = get_social_login_config_errors("google")
+
+    if config_errors:
+        return None
+
+    provider_config = get_auth_secrets().get("google", {})
+    state = st.session_state.get("google_oauth_state")
+
+    if not state:
+        state = py_secrets.token_urlsafe(32)
+        st.session_state.google_oauth_state = state
+
+    nonce = st.session_state.get("google_oauth_nonce")
+
+    if not nonce:
+        nonce = py_secrets.token_urlsafe(32)
+        st.session_state.google_oauth_nonce = nonce
+
+    params = {
+        "client_id": provider_config["client_id"],
+        "redirect_uri": get_google_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "nonce": nonce,
+        "prompt": "select_account",
+    }
+
+    return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
+
+
+def exchange_google_code(code):
+    provider_config = get_auth_secrets().get("google", {})
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": provider_config.get("client_id"),
+            "client_secret": provider_config.get("client_secret"),
+            "redirect_uri": get_google_redirect_uri(),
+            "grant_type": "authorization_code",
+        },
+        timeout=15,
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    return response.json()
+
+
+def fetch_google_profile(access_token):
+    response = requests.get(
+        "https://openidconnect.googleapis.com/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=15,
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    return response.json()
+
+
+def handle_google_oauth_callback():
+    if "error" in st.query_params:
+        error = st.query_params.get("error")
+        description = st.query_params.get("error_description", "")
+        st.session_state.auth_message = f"Google login failed: {error}. {description}"
+        st.query_params.clear()
+        st.rerun()
+
+    code = st.query_params.get("code")
+    state = st.query_params.get("state")
+
+    if not code:
+        return
+
+    expected_state = st.session_state.get("google_oauth_state")
+
+    if not expected_state or state != expected_state:
+        st.session_state.auth_message = "Google login failed: session expired. Please try again."
+        st.query_params.clear()
+        st.rerun()
+
+    try:
+        token = exchange_google_code(code)
+        access_token = token.get("access_token")
+
+        if not access_token:
+            raise RuntimeError("Google did not return an access token.")
+
+        profile = fetch_google_profile(access_token)
+        st.session_state.google_oauth_state = ""
+        st.session_state.google_oauth_nonce = ""
+        complete_google_login(profile)
+    except Exception as error:
+        st.session_state.auth_message = (
+            "Google login failed during token exchange. "
+            "Check the Google OAuth client secret and authorized redirect URI. "
+            f"Details: {error}"
+        )
+        st.query_params.clear()
+        st.rerun()
+
+
+def get_current_url_from_headers():
+    try:
+        headers = st.context.headers
+    except Exception:
+        return None
+
+    try:
+        host = headers.get("host") or headers.get("Host")
+        proto = (
+            headers.get("x-forwarded-proto")
+            or headers.get("X-Forwarded-Proto")
+            or "https"
+        )
+    except Exception:
+        return None
+
+    if not host:
+        return None
+
+    return f"{proto}://{host}"
+
+
+def show_social_login_diagnostics(provider):
+    auth_config = get_auth_secrets()
+    provider_config = auth_config.get(provider, {})
+    configured_redirect_uri = auth_config.get("redirect_uri", "not set")
+    expected_redirect_uri = get_current_oauth_callback_uri() or "unknown"
+    google_redirect_uri = get_google_redirect_uri() or "unknown"
+
+    with st.expander("Google login setup check"):
+        st.write("Google redirect URI to add in Google Console:")
+        st.code(google_redirect_uri)
+        st.write("Streamlit built-in redirect URI, not used by the Google logo now:")
+        st.code(configured_redirect_uri)
+        st.write("Streamlit built-in callback, kept only for Auth0/st.login:")
+        st.code(expected_redirect_uri)
+        st.write(
+            "Google client ID:",
+            "configured" if provider_config.get("client_id") else "missing"
+        )
+        st.write(
+            "Google client secret:",
+            "configured" if provider_config.get("client_secret") else "missing"
+        )
+        st.write(
+            "Google metadata URL:",
+            "configured" if provider_config.get("server_metadata_url") else "missing"
+        )
 
 
 st.set_page_config(
@@ -984,7 +1229,9 @@ h3 {
 }
 
 .st-key-google_login button,
+.st-key-google_login a,
 .st-key-google_reg button,
+.st-key-google_reg a,
 .st-key-github_login button,
 .st-key-github_reg button,
 .st-key-fb_login button,
@@ -998,7 +1245,9 @@ h3 {
 }
 
 .st-key-google_login button::before,
+.st-key-google_login a::before,
 .st-key-google_reg button::before,
+.st-key-google_reg a::before,
 .st-key-github_login button::before,
 .st-key-github_reg button::before,
 .st-key-fb_login button::before,
@@ -1014,7 +1263,9 @@ h3 {
 }
 
 .st-key-google_login button::before,
-.st-key-google_reg button::before {
+.st-key-google_login a::before,
+.st-key-google_reg button::before,
+.st-key-google_reg a::before {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E");
 }
 
@@ -1143,6 +1394,9 @@ if "confirm_delete_user_id" not in st.session_state:
 if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
 
+if not st.session_state.logged_in:
+    handle_google_oauth_callback()
+
 
 # =======================
 # LOGIN / REGISTER
@@ -1219,7 +1473,10 @@ if not st.session_state.logged_in:
         login_tab, register_tab = st.tabs(["🔐 Sign in", "📝 Create account"])
 
         if st.session_state.auth_message:
-            st.success(st.session_state.auth_message)
+            if "failed" in st.session_state.auth_message.lower():
+                st.error(st.session_state.auth_message)
+            else:
+                st.success(st.session_state.auth_message)
 
         with login_tab:
             login_username = st.text_input("Username", key="login_username", placeholder="your_username")
@@ -1241,16 +1498,25 @@ if not st.session_state.logged_in:
                 unsafe_allow_html=True
             )
 
+            google_login_url = get_google_login_url()
             g_col, gh_col, fb_col = st.columns(3)
             with g_col:
-                if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
-                    start_social_login("google")
+                st.link_button(
+                    "Google",
+                    google_login_url or "#",
+                    help="Continue with Google",
+                    disabled=google_login_url is None,
+                    use_container_width=True,
+                    key="google_login"
+                )
             with gh_col:
                 if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
                     start_social_login("auth0")
             with fb_col:
                 if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
                     start_social_login("auth0")
+
+            show_social_login_diagnostics("google")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1311,16 +1577,25 @@ if not st.session_state.logged_in:
                 unsafe_allow_html=True
             )
 
+            google_register_url = get_google_login_url()
             g2_col, gh2_col, fb2_col = st.columns(3)
             with g2_col:
-                if st.button("Google", help="Continue with Google", use_container_width=True, key="google_reg"):
-                    start_social_login("google")
+                st.link_button(
+                    "Google",
+                    google_register_url or "#",
+                    help="Continue with Google",
+                    disabled=google_register_url is None,
+                    use_container_width=True,
+                    key="google_reg"
+                )
             with gh2_col:
                 if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
                     start_social_login("auth0")
             with fb2_col:
                 if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
                     start_social_login("auth0")
+
+            show_social_login_diagnostics("google")
 
     st.stop()
 
