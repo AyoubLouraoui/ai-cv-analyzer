@@ -195,7 +195,8 @@ def start_social_login(provider):
 
 SOCIAL_PROVIDER_NAMES = {
     "google": "Google",
-    "auth0": "GitHub/Facebook",
+    "github": "GitHub",
+    "facebook": "Facebook",
 }
 
 
@@ -1306,10 +1307,10 @@ if not st.session_state.logged_in:
                     start_social_login("google")
             with gh_col:
                 if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
-                    start_social_login("auth0")
+                    start_social_login("github")
             with fb_col:
                 if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
-                    start_social_login("auth0")
+                    start_social_login("facebook")
 
             show_social_login_diagnostics("google")
 
@@ -1378,10 +1379,10 @@ if not st.session_state.logged_in:
                     start_social_login("google")
             with gh2_col:
                 if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
-                    start_social_login("auth0")
+                    start_social_login("github")
             with fb2_col:
                 if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
-                    start_social_login("auth0")
+                    start_social_login("facebook")
 
             show_social_login_diagnostics("google")
 
