@@ -4,7 +4,8 @@ import pandas as pd
 import re
 import json
 import secrets as py_secrets
-from urllib.parse import urlparse
+import requests
+from urllib.parse import urlencode, urlparse
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -160,6 +161,34 @@ def ensure_social_user():
     return username
 
 
+def ensure_external_oauth_user(email, name, provider):
+    if not email:
+        email = f"{provider}_{py_secrets.token_hex(8)}@social.local"
+
+    existing_user = get_user_by_email_safe(email)
+
+    if existing_user:
+        return existing_user[1]
+
+    username = make_social_username(email, name)
+    base_username = username
+    counter = 1
+
+    while database.get_user(username) is not None:
+        counter += 1
+        username = f"{base_username}_{counter}"
+
+    register_user(
+        username,
+        email,
+        py_secrets.token_urlsafe(32)
+    )
+
+    add_user_activity_safe(username, "social_register", f"Account created with {provider}: {email}")
+
+    return username
+
+
 def complete_social_login():
     username = ensure_social_user()
     st.session_state.logged_in = True
@@ -170,7 +199,180 @@ def complete_social_login():
     st.rerun()
 
 
+def get_oauth_config(provider):
+    try:
+        secrets_dict = st.secrets.to_dict()
+    except Exception:
+        secrets_dict = {}
+
+    return secrets_dict.get("oauth", {}).get(provider, {})
+
+
+def get_app_base_url():
+    try:
+        current_url = st.context.url
+    except Exception:
+        current_url = None
+
+    if not current_url:
+        current_url = get_current_url_from_headers()
+
+    if not current_url:
+        return get_secret("APP_URL", "http://localhost:8501")
+
+    parsed_url = urlparse(current_url)
+
+    if not parsed_url.scheme or not parsed_url.netloc:
+        return get_secret("APP_URL", "http://localhost:8501")
+
+    return f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+
+def get_direct_oauth_redirect_uri():
+    return get_app_base_url()
+
+
+def start_direct_oauth(provider):
+    provider_config = get_oauth_config(provider)
+    client_id = provider_config.get("client_id")
+
+    if not client_id:
+        st.error(f"{provider.title()} login is not configured. Add oauth.{provider}.client_id in Secrets.")
+        return
+
+    state = f"{provider}:{py_secrets.token_urlsafe(24)}"
+    st.session_state.oauth_state = state
+    st.session_state.oauth_provider = provider
+    redirect_uri = get_direct_oauth_redirect_uri()
+
+    if provider == "github":
+        params = {
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "read:user user:email",
+            "state": state,
+        }
+        auth_url = "https://github.com/login/oauth/authorize?" + urlencode(params)
+    elif provider == "facebook":
+        params = {
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "email,public_profile",
+            "state": state,
+            "response_type": "code",
+        }
+        auth_url = "https://www.facebook.com/v19.0/dialog/oauth?" + urlencode(params)
+    else:
+        st.error("Unsupported OAuth provider.")
+        return
+
+    st.markdown(
+        f"<meta http-equiv='refresh' content='0; url={auth_url}'>",
+        unsafe_allow_html=True
+    )
+    st.link_button(f"Continue to {provider.title()}", auth_url, use_container_width=True)
+
+
+def complete_direct_oauth(provider, code):
+    provider_config = get_oauth_config(provider)
+    client_id = provider_config.get("client_id")
+    client_secret = provider_config.get("client_secret")
+    redirect_uri = get_direct_oauth_redirect_uri()
+
+    if not client_id or not client_secret:
+        st.error(f"{provider.title()} login is not configured. Add client_id and client_secret in Secrets.")
+        return
+
+    try:
+        if provider == "github":
+            token_response = requests.post(
+                "https://github.com/login/oauth/access_token",
+                headers={"Accept": "application/json"},
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                },
+                timeout=15,
+            )
+            token_data = token_response.json()
+            access_token = token_data.get("access_token")
+
+            if not access_token:
+                st.error("GitHub login failed. No access token returned.")
+                return
+
+            user_response = requests.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                timeout=15,
+            )
+            user_data = user_response.json()
+
+            email = user_data.get("email")
+            name = user_data.get("name") or user_data.get("login")
+
+            if not email:
+                emails_response = requests.get(
+                    "https://api.github.com/user/emails",
+                    headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                    timeout=15,
+                )
+                for item in emails_response.json():
+                    if item.get("primary") and item.get("verified"):
+                        email = item.get("email")
+                        break
+
+        elif provider == "facebook":
+            token_response = requests.get(
+                "https://graph.facebook.com/v19.0/oauth/access_token",
+                params={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                },
+                timeout=15,
+            )
+            token_data = token_response.json()
+            access_token = token_data.get("access_token")
+
+            if not access_token:
+                st.error("Facebook login failed. No access token returned.")
+                return
+
+            user_response = requests.get(
+                "https://graph.facebook.com/me",
+                params={"fields": "id,name,email", "access_token": access_token},
+                timeout=15,
+            )
+            user_data = user_response.json()
+            email = user_data.get("email")
+            name = user_data.get("name")
+        else:
+            st.error("Unsupported OAuth provider.")
+            return
+
+        username = ensure_external_oauth_user(email, name, provider)
+        st.session_state.logged_in = True
+        st.session_state.username = username
+        st.session_state.is_admin = is_admin_user(username)
+        st.session_state.auth_message = ""
+        add_user_activity_safe(username, "social_login", f"User logged in with {provider}")
+        st.query_params.clear()
+        st.rerun()
+
+    except Exception as error:
+        st.error(f"{provider.title()} login failed.")
+        st.caption(str(error))
+
+
 def start_social_login(provider):
+    if provider in ["github", "facebook"]:
+        start_direct_oauth(provider)
+        return
+
     config_errors = get_social_login_config_errors(provider)
     provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
 
@@ -1202,6 +1404,23 @@ if "confirm_delete_user_id" not in st.session_state:
 
 if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
+
+if not st.session_state.logged_in and "code" in st.query_params:
+    callback_state = st.query_params.get("state")
+    callback_provider = st.session_state.get("oauth_provider")
+
+    if not callback_provider and callback_state and ":" in callback_state:
+        callback_provider = callback_state.split(":", 1)[0]
+
+    expected_state = st.session_state.get("oauth_state")
+
+    if callback_provider in ["github", "facebook"]:
+        if expected_state and callback_state != expected_state:
+            st.error("OAuth state mismatch. Please try logging in again.")
+            st.stop()
+
+        complete_direct_oauth(callback_provider, st.query_params.get("code"))
+        st.stop()
 
 
 # =======================
