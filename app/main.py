@@ -1290,6 +1290,7 @@ h3 {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    padding: 0 !important;
     transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease !important;
 }
 
@@ -1318,6 +1319,7 @@ h3 {
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
+    flex: 0 0 24px;
 }
 
 .st-key-google_login button::before,
@@ -1325,6 +1327,11 @@ h3 {
 .st-key-google_reg button::before,
 .st-key-google_reg a::before {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E");
+}
+
+.st-key-google_login button p,
+.st-key-google_reg button p {
+    display: none !important;
 }
 
 .st-key-github_login button::before,
