@@ -1626,8 +1626,6 @@ if not st.session_state.logged_in:
             with fb_col:
                 render_direct_oauth_button("facebook", "Facebook")
 
-            show_social_login_diagnostics("google")
-
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
             new_email = st.text_input("Email", key="register_email", placeholder="you@example.com")
@@ -1699,8 +1697,6 @@ if not st.session_state.logged_in:
                 render_direct_oauth_button("github", "Sign up GitHub")
             with fb2_col:
                 render_direct_oauth_button("facebook", "Sign up Facebook")
-
-            show_social_login_diagnostics("google")
 
     st.stop()
 
