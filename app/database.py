@@ -1,69 +1,132 @@
-import sqlite3
 import json
+import os
+import sqlite3
 
-conn = sqlite3.connect("users.db", check_same_thread=False)
+
+def get_secret(name, default=None):
+    try:
+        import streamlit as st
+
+        return st.secrets.get(name, os.getenv(name, default))
+    except Exception:
+        return os.getenv(name, default)
+
+
+DATABASE_URL = get_secret("DATABASE_URL")
+IS_POSTGRES = bool(DATABASE_URL)
+
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import Json
+
+    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    conn.autocommit = True
+else:
+    conn = sqlite3.connect("users.db", check_same_thread=False)
 
 cursor = conn.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    email TEXT UNIQUE,
-    password TEXT
-)
-""")
 
-conn.commit()
+def placeholder(index=1):
+    return "%s" if IS_POSTGRES else "?"
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS cv_uploads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
-    filename TEXT,
-    cv_text TEXT,
-    skills TEXT,
-    best_career TEXT,
-    best_score REAL,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
 
-conn.commit()
+def execute(query, params=()):
+    cursor.execute(query, params)
 
-try:
-    cursor.execute("ALTER TABLE cv_uploads ADD COLUMN cv_text TEXT")
-    conn.commit()
-except sqlite3.OperationalError:
-    pass
+    if not IS_POSTGRES:
+        conn.commit()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS user_activity (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
-    action TEXT,
-    details TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
 
-conn.commit()
+def init_db():
+    if IS_POSTGRES:
+        execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT
+        )
+        """)
+
+        execute("""
+        CREATE TABLE IF NOT EXISTS cv_uploads (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            filename TEXT,
+            cv_text TEXT,
+            skills TEXT,
+            best_career TEXT,
+            best_score REAL,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        execute("""
+        CREATE TABLE IF NOT EXISTS user_activity (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            action TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+    else:
+        execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT
+        )
+        """)
+
+        execute("""
+        CREATE TABLE IF NOT EXISTS cv_uploads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            filename TEXT,
+            cv_text TEXT,
+            skills TEXT,
+            best_career TEXT,
+            best_score REAL,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        try:
+            execute("ALTER TABLE cv_uploads ADD COLUMN cv_text TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+        execute("""
+        CREATE TABLE IF NOT EXISTS user_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            action TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+
+init_db()
 
 
 def add_user(username, email, password):
+    p = placeholder()
 
-    cursor.execute(
-        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+    execute(
+        f"INSERT INTO users (username, email, password) VALUES ({p}, {p}, {p})",
         (username, email, password)
     )
 
-    conn.commit()
-
 
 def get_user(username):
+    p = placeholder()
 
     cursor.execute(
-        "SELECT * FROM users WHERE username=?",
+        f"SELECT * FROM users WHERE username={p}",
         (username,)
     )
 
@@ -71,9 +134,10 @@ def get_user(username):
 
 
 def get_user_by_email(email):
+    p = placeholder()
 
     cursor.execute(
-        "SELECT * FROM users WHERE email=?",
+        f"SELECT * FROM users WHERE email={p}",
         (email,)
     )
 
@@ -81,7 +145,6 @@ def get_user_by_email(email):
 
 
 def get_all_users():
-
     cursor.execute(
         "SELECT id, username, email FROM users ORDER BY id DESC"
     )
@@ -90,31 +153,30 @@ def get_all_users():
 
 
 def update_user(user_id, username, email):
+    p = placeholder()
 
-    cursor.execute(
-        "UPDATE users SET username=?, email=? WHERE id=?",
+    execute(
+        f"UPDATE users SET username={p}, email={p} WHERE id={p}",
         (username, email, user_id)
     )
 
-    conn.commit()
-
 
 def delete_user(user_id):
+    p = placeholder()
 
-    cursor.execute(
-        "DELETE FROM users WHERE id=?",
+    execute(
+        f"DELETE FROM users WHERE id={p}",
         (user_id,)
     )
 
-    conn.commit()
-
 
 def add_cv_upload(username, filename, cv_text, skills, best_career, best_score):
+    p = placeholder()
 
-    cursor.execute(
-        """
+    execute(
+        f"""
         INSERT INTO cv_uploads (username, filename, cv_text, skills, best_career, best_score)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES ({p}, {p}, {p}, {p}, {p}, {p})
         """,
         (
             username,
@@ -126,11 +188,8 @@ def add_cv_upload(username, filename, cv_text, skills, best_career, best_score):
         )
     )
 
-    conn.commit()
-
 
 def get_all_cv_uploads():
-
     cursor.execute(
         """
         SELECT id, username, filename, cv_text, skills, best_career, best_score, uploaded_at
@@ -143,20 +202,18 @@ def get_all_cv_uploads():
 
 
 def add_user_activity(username, action, details=""):
+    p = placeholder()
 
-    cursor.execute(
-        """
+    execute(
+        f"""
         INSERT INTO user_activity (username, action, details)
-        VALUES (?, ?, ?)
+        VALUES ({p}, {p}, {p})
         """,
         (username, action, details)
     )
 
-    conn.commit()
-
 
 def get_all_user_activity():
-
     cursor.execute(
         """
         SELECT id, username, action, details, created_at
