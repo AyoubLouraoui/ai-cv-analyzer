@@ -252,8 +252,11 @@ def get_current_oauth_callback_uri():
     if not parsed_url.scheme or not parsed_url.netloc:
         return None
 
-    base_path = parsed_url.path.strip("/")
-    callback_path = f"/{base_path}/oauth2callback" if base_path else "/oauth2callback"
+    if parsed_url.netloc.endswith(".streamlit.app"):
+        callback_path = "/~/+/oauth2callback"
+    else:
+        base_path = parsed_url.path.strip("/")
+        callback_path = f"/{base_path}/oauth2callback" if base_path else "/oauth2callback"
 
     return f"{parsed_url.scheme}://{parsed_url.netloc}{callback_path}"
 
