@@ -170,12 +170,54 @@ def complete_social_login():
 
 
 def start_social_login(provider):
+    missing_fields = get_missing_social_login_fields(provider)
+    provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
+
+    if missing_fields:
+        st.error(
+            f"{provider_name} login is not configured yet. "
+            "Add the OAuth settings in Streamlit Secrets first."
+        )
+        st.caption("Missing: " + ", ".join(missing_fields))
+        return
+
     try:
         st.login(provider)
-    except Exception:
+    except Exception as error:
         st.error(
-            f"{provider} login is not configured yet. Add the OIDC settings in Streamlit Secrets."
+            f"Could not start {provider_name} login. "
+            "Check your Streamlit Secrets and OAuth redirect URI."
         )
+        st.caption(str(error))
+
+
+SOCIAL_PROVIDER_NAMES = {
+    "google": "Google",
+    "auth0": "GitHub/Facebook",
+}
+
+
+def get_auth_secrets():
+    try:
+        return st.secrets.to_dict().get("auth", {})
+    except Exception:
+        return {}
+
+
+def get_missing_social_login_fields(provider):
+    auth_config = get_auth_secrets()
+    provider_config = auth_config.get(provider, {})
+    missing_fields = []
+
+    for field in ["redirect_uri", "cookie_secret"]:
+        if not auth_config.get(field):
+            missing_fields.append(f"auth.{field}")
+
+    for field in ["client_id", "client_secret", "server_metadata_url"]:
+        if not provider_config.get(field):
+            missing_fields.append(f"auth.{provider}.{field}")
+
+    return missing_fields
 
 
 st.set_page_config(
