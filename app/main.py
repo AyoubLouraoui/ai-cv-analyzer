@@ -1637,11 +1637,9 @@ if not st.session_state.logged_in:
                 if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
                     start_social_login("google")
             with gh_col:
-                if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
-                    start_social_login("github")
+                render_direct_oauth_button("github", "GitHub")
             with fb_col:
-                if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
-                    start_social_login("facebook")
+                render_direct_oauth_button("facebook", "Facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1711,11 +1709,9 @@ if not st.session_state.logged_in:
                 if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                     start_social_login("google")
             with gh2_col:
-                if st.button("Sign up GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
-                    start_social_login("github")
+                render_direct_oauth_button("github", "Sign up GitHub")
             with fb2_col:
-                if st.button("Sign up Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
-                    start_social_login("facebook")
+                render_direct_oauth_button("facebook", "Sign up Facebook")
 
     st.stop()
 
