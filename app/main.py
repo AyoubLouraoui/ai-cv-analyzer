@@ -288,6 +288,7 @@ def start_direct_oauth(provider):
 
 def render_direct_oauth_button(provider, label):
     auth_url = get_direct_oauth_url(provider)
+    title = f"Continue with {provider.title()}"
 
     if not auth_url:
         if st.button(label, use_container_width=True, disabled=True):
@@ -300,8 +301,8 @@ def render_direct_oauth_button(provider, label):
         <a class="direct-oauth-btn {html.escape(provider)}"
            href="{html.escape(auth_url)}"
            target="_top"
-           aria-label="{html.escape(label)}"
-           title="{html.escape(label)}"></a>
+           aria-label="{html.escape(title)}"
+           title="{html.escape(title)}"></a>
         """,
         unsafe_allow_html=True
     )
