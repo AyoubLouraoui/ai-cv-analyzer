@@ -257,7 +257,7 @@ def get_direct_oauth_url(provider):
         params = {
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": "email,public_profile",
+            "scope": "public_profile",
             "state": state,
             "response_type": "code",
         }
