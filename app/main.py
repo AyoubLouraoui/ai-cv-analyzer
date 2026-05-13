@@ -329,11 +329,7 @@ def render_oauth_popup_return_bridge():
             window.setTimeout(function () {{
                 if (openerUpdated) {{
                     try {{ window.top.close(); }} catch (error) {{}}
-                    return;
                 }}
-
-                try {{ window.parent.location.href = url; }} catch (error) {{}}
-                try {{ window.top.location.href = url; }} catch (error) {{}}
             }}, 900);
         }})();
         </script>
@@ -448,6 +444,33 @@ def render_direct_oauth_button(provider, label):
     )
 
 
+def show_oauth_token_error(provider, token_response, token_data):
+    provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
+    error_data = token_data.get("error") if isinstance(token_data, dict) else None
+
+    if isinstance(error_data, dict):
+        message = error_data.get("message") or error_data.get("error_user_msg")
+        code = error_data.get("code")
+        error_type = error_data.get("type")
+    elif error_data:
+        message = str(error_data)
+        code = token_data.get("error_code") if isinstance(token_data, dict) else None
+        error_type = token_data.get("error_description") if isinstance(token_data, dict) else None
+    else:
+        message = token_data.get("error_description") if isinstance(token_data, dict) else None
+        code = token_data.get("error_code") if isinstance(token_data, dict) else None
+        error_type = token_data.get("error") if isinstance(token_data, dict) else None
+
+    st.error(f"{provider_name} login failed. No access token returned.")
+
+    if message:
+        st.caption(f"{provider_name} says: {message}")
+    if code or error_type:
+        st.caption(f"Details: {error_type or 'OAuth error'} / {code or token_response.status_code}")
+    if not message and not error_type:
+        st.caption(f"HTTP status: {token_response.status_code}")
+
+
 def complete_direct_oauth(provider, code):
     provider_config = get_oauth_config(provider)
     client_id = provider_config.get("client_id")
@@ -475,7 +498,7 @@ def complete_direct_oauth(provider, code):
             access_token = token_data.get("access_token")
 
             if not access_token:
-                st.error("GitHub login failed. No access token returned.")
+                show_oauth_token_error(provider, token_response, token_data)
                 return
 
             user_response = requests.get(
@@ -514,7 +537,7 @@ def complete_direct_oauth(provider, code):
             access_token = token_data.get("access_token")
 
             if not access_token:
-                st.error("Facebook login failed. No access token returned.")
+                show_oauth_token_error(provider, token_response, token_data)
                 return
 
             user_response = requests.get(
