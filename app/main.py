@@ -306,7 +306,8 @@ def render_direct_oauth_button(provider, label):
         f"""
         <a class="direct-oauth-btn {html.escape(provider)}"
            href="{html.escape(auth_url)}"
-           target="_top"
+           target="_blank"
+           rel="noopener noreferrer"
            title="{html.escape(title)}"
            aria-label="{html.escape(title)}"></a>
         """,
@@ -1636,9 +1637,11 @@ if not st.session_state.logged_in:
                 if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
                     start_social_login("google")
             with gh_col:
-                render_direct_oauth_button("github", "GitHub")
+                if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
+                    start_social_login("github")
             with fb_col:
-                render_direct_oauth_button("facebook", "Facebook")
+                if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
+                    start_social_login("facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1708,9 +1711,11 @@ if not st.session_state.logged_in:
                 if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                     start_social_login("google")
             with gh2_col:
-                render_direct_oauth_button("github", "Sign up GitHub")
+                if st.button("Sign up GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
+                    start_social_login("github")
             with fb2_col:
-                render_direct_oauth_button("facebook", "Sign up Facebook")
+                if st.button("Sign up Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
+                    start_social_login("facebook")
 
     st.stop()
 
