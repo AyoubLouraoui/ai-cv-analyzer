@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import json
 import secrets as py_secrets
+from urllib.parse import urlparse
 
 from auth_system import register_user, login_user
 from pdf_parser import extract_text_from_pdf
@@ -170,15 +171,16 @@ def complete_social_login():
 
 
 def start_social_login(provider):
-    missing_fields = get_missing_social_login_fields(provider)
+    config_errors = get_social_login_config_errors(provider)
     provider_name = SOCIAL_PROVIDER_NAMES.get(provider, provider.title())
 
-    if missing_fields:
+    if config_errors:
         st.error(
             f"{provider_name} login is not configured yet. "
             "Add the OAuth settings in Streamlit Secrets first."
         )
-        st.caption("Missing: " + ", ".join(missing_fields))
+        for config_error in config_errors:
+            st.caption(config_error)
         return
 
     try:
@@ -204,20 +206,53 @@ def get_auth_secrets():
         return {}
 
 
-def get_missing_social_login_fields(provider):
+def get_social_login_config_errors(provider):
     auth_config = get_auth_secrets()
     provider_config = auth_config.get(provider, {})
-    missing_fields = []
+    config_errors = []
 
     for field in ["redirect_uri", "cookie_secret"]:
         if not auth_config.get(field):
-            missing_fields.append(f"auth.{field}")
+            config_errors.append(f"Missing: auth.{field}")
 
     for field in ["client_id", "client_secret", "server_metadata_url"]:
         if not provider_config.get(field):
-            missing_fields.append(f"auth.{provider}.{field}")
+            config_errors.append(f"Missing: auth.{provider}.{field}")
 
-    return missing_fields
+    configured_redirect_uri = auth_config.get("redirect_uri")
+    current_redirect_uri = get_current_oauth_callback_uri()
+
+    if (
+        configured_redirect_uri
+        and current_redirect_uri
+        and configured_redirect_uri.rstrip("/") != current_redirect_uri.rstrip("/")
+    ):
+        config_errors.append(
+            "Redirect URI mismatch. "
+            f"Secrets has {configured_redirect_uri}, but this app needs {current_redirect_uri}"
+        )
+
+    return config_errors
+
+
+def get_current_oauth_callback_uri():
+    try:
+        current_url = st.context.url
+    except Exception:
+        return None
+
+    if not current_url:
+        return None
+
+    parsed_url = urlparse(current_url)
+
+    if not parsed_url.scheme or not parsed_url.netloc:
+        return None
+
+    base_path = parsed_url.path.strip("/")
+    callback_path = f"/{base_path}/oauth2callback" if base_path else "/oauth2callback"
+
+    return f"{parsed_url.scheme}://{parsed_url.netloc}{callback_path}"
 
 
 st.set_page_config(
