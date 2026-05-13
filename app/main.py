@@ -297,13 +297,11 @@ def render_direct_oauth_button(provider, label):
 
     st.markdown(
         f"""
-        <a href="{html.escape(auth_url)}" target="_top"
-           style="display:block;width:100%;text-align:center;padding:11px 12px;border-radius:12px;
-                  background:linear-gradient(135deg,#0f766e,#0ea5e9);color:white;
-                  font-weight:850;text-decoration:none;border:1px solid rgba(45,212,191,.42);
-                  box-shadow:0 12px 30px rgba(14,165,233,.18);">
-            {html.escape(label)}
-        </a>
+        <a class="direct-oauth-btn {html.escape(provider)}"
+           href="{html.escape(auth_url)}"
+           target="_top"
+           aria-label="{html.escape(label)}"
+           title="{html.escape(label)}"></a>
         """,
         unsafe_allow_html=True
     )
@@ -1323,6 +1321,44 @@ h3 {
 
 .st-key-fb_login button::before,
 .st-key-fb_reg button::before {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle fill='%231877f2' cx='12' cy='12' r='12'/%3E%3Cpath fill='%23fff' d='M15.12 12.75l.38-2.49h-2.39V8.64c0-.68.33-1.34 1.4-1.34h1.09V5.18s-.99-.17-1.94-.17c-1.98 0-3.27 1.2-3.27 3.37v1.88H8.2v2.49h2.19v6.02h2.72v-6.02h2.01z'/%3E%3C/svg%3E");
+}
+
+.direct-oauth-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(148,163,184,0.18);
+    box-shadow: none;
+    text-decoration: none;
+    transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease;
+}
+
+.direct-oauth-btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.88;
+    border-color: rgba(11,217,160,0.36);
+}
+
+.direct-oauth-btn::before {
+    content: "";
+    display: block;
+    width: 24px;
+    height: 24px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.direct-oauth-btn.github::before {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23f0f6ff' d='M12 .5C5.73.5.65 5.58.65 11.85c0 5.02 3.26 9.28 7.78 10.78.57.11.78-.25.78-.55v-2.17c-3.17.69-3.84-1.36-3.84-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.24 3.32.95.1-.74.4-1.24.72-1.53-2.53-.29-5.19-1.27-5.19-5.64 0-1.25.45-2.26 1.18-3.06-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.14 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.81 1.18 3.06 0 4.38-2.67 5.34-5.21 5.63.41.36.77 1.06.77 2.14v3.17c0 .3.21.66.79.55 4.52-1.5 7.77-5.76 7.77-10.78C23.35 5.58 18.27.5 12 .5z'/%3E%3C/svg%3E");
+}
+
+.direct-oauth-btn.facebook::before {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle fill='%231877f2' cx='12' cy='12' r='12'/%3E%3Cpath fill='%23fff' d='M15.12 12.75l.38-2.49h-2.39V8.64c0-.68.33-1.34 1.4-1.34h1.09V5.18s-.99-.17-1.94-.17c-1.98 0-3.27 1.2-3.27 3.37v1.88H8.2v2.49h2.19v6.02h2.72v-6.02h2.01z'/%3E%3C/svg%3E");
 }
 
