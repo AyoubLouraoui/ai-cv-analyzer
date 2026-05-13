@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+import threading
 
 
 def get_secret(name, default=None):
@@ -14,28 +15,54 @@ def get_secret(name, default=None):
 
 DATABASE_URL = get_secret("DATABASE_URL")
 IS_POSTGRES = bool(DATABASE_URL)
+_DB_LOCK = threading.Lock()
 
 if IS_POSTGRES:
     import psycopg2
-    from psycopg2.extras import Json
 
     conn = psycopg2.connect(DATABASE_URL, sslmode="require")
     conn.autocommit = True
 else:
     conn = sqlite3.connect("users.db", check_same_thread=False)
 
-cursor = conn.cursor()
-
-
 def placeholder(index=1):
     return "%s" if IS_POSTGRES else "?"
 
 
-def execute(query, params=()):
-    cursor.execute(query, params)
+def execute(query, params=(), fetch=None):
+    with _DB_LOCK:
+        cursor = conn.cursor()
 
-    if not IS_POSTGRES:
-        conn.commit()
+        try:
+            cursor.execute(query, params)
+
+            if fetch == "one":
+                return cursor.fetchone()
+
+            if fetch == "all":
+                return cursor.fetchall()
+
+            if not IS_POSTGRES:
+                conn.commit()
+
+            return None
+        finally:
+            cursor.close()
+
+
+def ignore_duplicate_column_error(error):
+    if IS_POSTGRES:
+        return getattr(error, "pgcode", None) == "42701"
+
+    return isinstance(error, sqlite3.OperationalError) and "duplicate column" in str(error).lower()
+
+
+def add_column_if_missing(table, column, definition):
+    try:
+        execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+    except Exception as error:
+        if not ignore_duplicate_column_error(error):
+            raise
 
 
 def init_db():
@@ -49,6 +76,9 @@ def init_db():
         )
         """)
 
+        add_column_if_missing("users", "email", "TEXT UNIQUE")
+        add_column_if_missing("users", "password", "TEXT")
+
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
             id SERIAL PRIMARY KEY,
@@ -61,6 +91,8 @@ def init_db():
             uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
+
+        add_column_if_missing("cv_uploads", "cv_text", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS user_activity (
@@ -94,10 +126,7 @@ def init_db():
         )
         """)
 
-        try:
-            execute("ALTER TABLE cv_uploads ADD COLUMN cv_text TEXT")
-        except sqlite3.OperationalError:
-            pass
+        add_column_if_missing("cv_uploads", "cv_text", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS user_activity (
@@ -125,31 +154,28 @@ def add_user(username, email, password):
 def get_user(username):
     p = placeholder()
 
-    cursor.execute(
+    return execute(
         f"SELECT * FROM users WHERE username={p}",
-        (username,)
+        (username,),
+        fetch="one"
     )
-
-    return cursor.fetchone()
 
 
 def get_user_by_email(email):
     p = placeholder()
 
-    cursor.execute(
+    return execute(
         f"SELECT * FROM users WHERE email={p}",
-        (email,)
+        (email,),
+        fetch="one"
     )
-
-    return cursor.fetchone()
 
 
 def get_all_users():
-    cursor.execute(
-        "SELECT id, username, email FROM users ORDER BY id DESC"
+    return execute(
+        "SELECT id, username, email FROM users ORDER BY id DESC",
+        fetch="all"
     )
-
-    return cursor.fetchall()
 
 
 def update_user(user_id, username, email):
@@ -190,15 +216,14 @@ def add_cv_upload(username, filename, cv_text, skills, best_career, best_score):
 
 
 def get_all_cv_uploads():
-    cursor.execute(
+    return execute(
         """
         SELECT id, username, filename, cv_text, skills, best_career, best_score, uploaded_at
         FROM cv_uploads
         ORDER BY uploaded_at DESC
-        """
+        """,
+        fetch="all"
     )
-
-    return cursor.fetchall()
 
 
 def add_user_activity(username, action, details=""):
@@ -214,12 +239,19 @@ def add_user_activity(username, action, details=""):
 
 
 def get_all_user_activity():
-    cursor.execute(
+    return execute(
         """
         SELECT id, username, action, details, created_at
         FROM user_activity
         ORDER BY created_at DESC
-        """
+        """,
+        fetch="all"
     )
 
-    return cursor.fetchall()
+
+def get_database_backend():
+    return "PostgreSQL" if IS_POSTGRES else "SQLite"
+
+
+def is_persistent_database():
+    return IS_POSTGRES
