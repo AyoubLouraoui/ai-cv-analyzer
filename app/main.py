@@ -301,6 +301,7 @@ def render_direct_oauth_button(provider, label):
         <a class="direct-oauth-btn {html.escape(provider)}"
            href="{html.escape(auth_url)}"
            target="_top"
+           onclick="window.top.location.href=this.href; return false;"
            aria-label="{html.escape(title)}"
            title="{html.escape(title)}"></a>
         """,
