@@ -3,6 +3,7 @@ import plotly.express as px
 import pandas as pd
 import re
 import json
+import html
 import secrets as py_secrets
 import requests
 from urllib.parse import urlencode, urlparse
@@ -232,13 +233,12 @@ def get_direct_oauth_redirect_uri():
     return get_app_base_url()
 
 
-def start_direct_oauth(provider):
+def get_direct_oauth_url(provider):
     provider_config = get_oauth_config(provider)
     client_id = provider_config.get("client_id")
 
     if not client_id:
-        st.error(f"{provider.title()} login is not configured. Add oauth.{provider}.client_id in Secrets.")
-        return
+        return None
 
     state = f"{provider}:{py_secrets.token_urlsafe(24)}"
     st.session_state.oauth_state = state
@@ -252,7 +252,7 @@ def start_direct_oauth(provider):
             "scope": "read:user user:email",
             "state": state,
         }
-        auth_url = "https://github.com/login/oauth/authorize?" + urlencode(params)
+        return "https://github.com/login/oauth/authorize?" + urlencode(params)
     elif provider == "facebook":
         params = {
             "client_id": client_id,
@@ -261,16 +261,52 @@ def start_direct_oauth(provider):
             "state": state,
             "response_type": "code",
         }
-        auth_url = "https://www.facebook.com/v19.0/dialog/oauth?" + urlencode(params)
-    else:
-        st.error("Unsupported OAuth provider.")
+        return "https://www.facebook.com/v19.0/dialog/oauth?" + urlencode(params)
+
+    return None
+
+
+def start_direct_oauth(provider):
+    auth_url = get_direct_oauth_url(provider)
+
+    if not auth_url:
+        st.error(f"{provider.title()} login is not configured. Add oauth.{provider}.client_id in Secrets.")
         return
 
     st.markdown(
-        f"<meta http-equiv='refresh' content='0; url={auth_url}'>",
+        f"""
+        <a href="{html.escape(auth_url)}" target="_top"
+           style="display:block;text-align:center;padding:12px 16px;border-radius:12px;
+                  background:linear-gradient(135deg,#0f766e,#0ea5e9);color:white;
+                  font-weight:800;text-decoration:none;">
+            Continue to {provider.title()}
+        </a>
+        """,
         unsafe_allow_html=True
     )
-    st.link_button(f"Continue to {provider.title()}", auth_url, use_container_width=True)
+
+
+def render_direct_oauth_button(provider, label):
+    auth_url = get_direct_oauth_url(provider)
+
+    if not auth_url:
+        if st.button(label, use_container_width=True, disabled=True):
+            pass
+        st.caption(f"Add oauth.{provider}.client_id and oauth.{provider}.client_secret in Secrets.")
+        return
+
+    st.markdown(
+        f"""
+        <a href="{html.escape(auth_url)}" target="_top"
+           style="display:block;width:100%;text-align:center;padding:11px 12px;border-radius:12px;
+                  background:linear-gradient(135deg,#0f766e,#0ea5e9);color:white;
+                  font-weight:850;text-decoration:none;border:1px solid rgba(45,212,191,.42);
+                  box-shadow:0 12px 30px rgba(14,165,233,.18);">
+            {html.escape(label)}
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def complete_direct_oauth(provider, code):
@@ -1525,11 +1561,9 @@ if not st.session_state.logged_in:
                 if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
                     start_social_login("google")
             with gh_col:
-                if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
-                    start_social_login("github")
+                render_direct_oauth_button("github", "GitHub")
             with fb_col:
-                if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
-                    start_social_login("facebook")
+                render_direct_oauth_button("facebook", "Facebook")
 
             show_social_login_diagnostics("google")
 
@@ -1597,11 +1631,9 @@ if not st.session_state.logged_in:
                 if st.button("Google", help="Continue with Google", use_container_width=True, key="google_reg"):
                     start_social_login("google")
             with gh2_col:
-                if st.button("GitHub", help="Continue with GitHub", use_container_width=True, key="github_reg"):
-                    start_social_login("github")
+                render_direct_oauth_button("github", "GitHub")
             with fb2_col:
-                if st.button("Facebook", help="Continue with Facebook", use_container_width=True, key="fb_reg"):
-                    start_social_login("facebook")
+                render_direct_oauth_button("facebook", "Facebook")
 
             show_social_login_diagnostics("google")
 
