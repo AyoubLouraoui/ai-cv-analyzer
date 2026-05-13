@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.express as px
 import pandas as pd
 import re
@@ -209,6 +210,119 @@ def get_oauth_config(provider):
     return secrets_dict.get("oauth", {}).get(provider, {})
 
 
+OAUTH_RETURN_STORAGE_KEY = "ai_cv_oauth_return_url"
+
+
+def get_query_param_pairs(extra_params=None):
+    pairs = []
+
+    for key in st.query_params.keys():
+        if key == "oauth_forwarded":
+            continue
+
+        try:
+            values = st.query_params.get_all(key)
+        except Exception:
+            values = [st.query_params.get(key)]
+
+        for value in values:
+            if value is not None:
+                pairs.append((key, value))
+
+    if extra_params:
+        pairs.extend(extra_params)
+
+    return pairs
+
+
+def get_forwarded_oauth_url():
+    query_string = urlencode(get_query_param_pairs([("oauth_forwarded", "1")]), doseq=True)
+    return f"{get_app_base_url()}/?{query_string}"
+
+
+def render_oauth_return_listener():
+    components.html(
+        f"""
+        <script>
+        (function () {{
+            const key = {json.dumps(OAUTH_RETURN_STORAGE_KEY)};
+
+            function consumeOAuthReturn() {{
+                let raw = null;
+                try {{
+                    raw = window.localStorage.getItem(key);
+                }} catch (error) {{
+                    return;
+                }}
+
+                if (!raw) {{
+                    return;
+                }}
+
+                let payload = null;
+                try {{
+                    payload = JSON.parse(raw);
+                }} catch (error) {{
+                    return;
+                }}
+
+                if (!payload || !payload.url || Date.now() - payload.ts > 300000) {{
+                    try {{ window.localStorage.removeItem(key); }} catch (error) {{}}
+                    return;
+                }}
+
+                try {{ window.localStorage.removeItem(key); }} catch (error) {{}}
+                window.parent.location.href = payload.url;
+            }}
+
+            window.addEventListener("storage", function (event) {{
+                if (event.key === key) {{
+                    consumeOAuthReturn();
+                }}
+            }});
+
+            window.setInterval(consumeOAuthReturn, 700);
+            consumeOAuthReturn();
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
+def render_oauth_popup_return_bridge():
+    forwarded_url = get_forwarded_oauth_url()
+
+    components.html(
+        f"""
+        <div style="font-family:Inter,Arial,sans-serif;padding:18px;color:#e2eaf5;">
+            Returning you to AI CV Analyzer...
+        </div>
+        <script>
+        (function () {{
+            const url = {json.dumps(forwarded_url)};
+            const key = {json.dumps(OAUTH_RETURN_STORAGE_KEY)};
+
+            try {{
+                if (window.top.opener && !window.top.opener.closed) {{
+                    window.top.opener.location.href = url;
+                }}
+            }} catch (error) {{}}
+
+            try {{
+                window.localStorage.setItem(key, JSON.stringify({{ url: url, ts: Date.now() }}));
+            }} catch (error) {{}}
+
+            window.setTimeout(function () {{
+                try {{ window.top.close(); }} catch (error) {{}}
+            }}, 400);
+        }})();
+        </script>
+        """,
+        height=90,
+    )
+
+
 def get_app_base_url():
     try:
         current_url = st.context.url
@@ -306,8 +420,8 @@ def render_direct_oauth_button(provider, label):
         f"""
         <a class="direct-oauth-btn {html.escape(provider)}"
            href="{html.escape(auth_url)}"
-           target="_blank"
-           rel="noopener noreferrer"
+           target="ai_cv_oauth"
+           rel="opener"
            title="{html.escape(title)}"
            aria-label="{html.escape(title)}"></a>
         """,
@@ -1518,6 +1632,10 @@ if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
 
 if not st.session_state.logged_in and "code" in st.query_params:
+    if st.query_params.get("oauth_forwarded") != "1":
+        render_oauth_popup_return_bridge()
+        st.stop()
+
     callback_state = st.query_params.get("state")
     callback_provider = st.session_state.get("oauth_provider")
 
@@ -1540,6 +1658,8 @@ if not st.session_state.logged_in and "code" in st.query_params:
 # =======================
 
 if not st.session_state.logged_in:
+    render_oauth_return_listener()
+
     st.markdown("""
     <div class="gs-section">
         <div class="gs-badge">
