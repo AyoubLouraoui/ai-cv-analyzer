@@ -293,19 +293,32 @@ def render_oauth_return_listener():
 def render_oauth_popup_return_bridge():
     forwarded_url = get_forwarded_oauth_url()
 
+    st.info("Returning you to AI CV Analyzer...")
+    st.markdown(
+        f"""
+        <a href="{html.escape(forwarded_url)}" target="_self"
+           style="display:block;text-align:center;padding:12px 16px;border-radius:10px;
+                  background:linear-gradient(135deg,#0bd9a0,#0ea5e9);color:#020d18;
+                  font-weight:800;text-decoration:none;">
+            Continue to AI CV Analyzer
+        </a>
+        """,
+        unsafe_allow_html=True,
+    )
+
     components.html(
         f"""
-        <div style="font-family:Inter,Arial,sans-serif;padding:18px;color:#e2eaf5;">
-            Returning you to AI CV Analyzer...
-        </div>
         <script>
         (function () {{
             const url = {json.dumps(forwarded_url)};
             const key = {json.dumps(OAUTH_RETURN_STORAGE_KEY)};
+            let openerUpdated = false;
 
             try {{
-                if (window.top.opener && !window.top.opener.closed) {{
-                    window.top.opener.location.href = url;
+                const openerWindow = window.top.opener || window.opener;
+                if (openerWindow && !openerWindow.closed) {{
+                    openerWindow.location.href = url;
+                    openerUpdated = true;
                 }}
             }} catch (error) {{}}
 
@@ -314,12 +327,18 @@ def render_oauth_popup_return_bridge():
             }} catch (error) {{}}
 
             window.setTimeout(function () {{
-                try {{ window.top.close(); }} catch (error) {{}}
-            }}, 400);
+                if (openerUpdated) {{
+                    try {{ window.top.close(); }} catch (error) {{}}
+                    return;
+                }}
+
+                try {{ window.parent.location.href = url; }} catch (error) {{}}
+                try {{ window.top.location.href = url; }} catch (error) {{}}
+            }}, 900);
         }})();
         </script>
         """,
-        height=90,
+        height=0,
     )
 
 
@@ -420,7 +439,7 @@ def render_direct_oauth_button(provider, label):
         f"""
         <a class="direct-oauth-btn {html.escape(provider)}"
            href="{html.escape(auth_url)}"
-           target="ai_cv_oauth"
+           target="_blank"
            rel="opener"
            title="{html.escape(title)}"
            aria-label="{html.escape(title)}"></a>
