@@ -1287,6 +1287,19 @@ h3 {
     background: rgba(255,255,255,0.04) !important;
     border: 1px solid rgba(148,163,184,0.18) !important;
     box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease !important;
+}
+
+.st-key-google_login button:hover,
+.st-key-google_login a:hover,
+.st-key-google_reg button:hover,
+.st-key-google_reg a:hover {
+    transform: translateY(-1px) !important;
+    opacity: 0.88 !important;
+    border-color: rgba(11,217,160,0.36) !important;
 }
 
 .st-key-google_login button::before,
