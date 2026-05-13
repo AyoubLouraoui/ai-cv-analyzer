@@ -1622,18 +1622,22 @@ if not st.session_state.logged_in:
                         st.error("❌ Username or email already exists")
 
             st.markdown(
-                "<div style='text-align:center;margin:10px 0 8px;font-size:11.5px;color:#6f8499;letter-spacing:0.08em;'>OR CONTINUE WITH</div>",
+                "<div style='text-align:center;margin:10px 0 8px;font-size:11.5px;color:#6f8499;letter-spacing:0.08em;'>OR CREATE ACCOUNT WITH</div>",
                 unsafe_allow_html=True
+            )
+
+            st.caption(
+                "Google, GitHub, or Facebook will create your account automatically and redirect you to your dashboard."
             )
 
             g2_col, gh2_col, fb2_col = st.columns(3)
             with g2_col:
-                if st.button("Google", help="Continue with Google", use_container_width=True, key="google_reg"):
+                if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                     start_social_login("google")
             with gh2_col:
-                render_direct_oauth_button("github", "GitHub")
+                render_direct_oauth_button("github", "Sign up GitHub")
             with fb2_col:
-                render_direct_oauth_button("facebook", "Facebook")
+                render_direct_oauth_button("facebook", "Sign up Facebook")
 
             show_social_login_diagnostics("google")
 
