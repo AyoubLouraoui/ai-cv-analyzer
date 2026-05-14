@@ -629,6 +629,9 @@ def get_social_login_config_errors(provider):
     auth_config = get_auth_secrets()
     provider_config = auth_config.get(provider, {})
     config_errors = []
+    client_id = str(provider_config.get("client_id", "")).strip()
+    server_metadata_url = str(provider_config.get("server_metadata_url", "")).strip()
+    client_kwargs = provider_config.get("client_kwargs", {}) or {}
 
     for field in ["redirect_uri", "cookie_secret"]:
         if not auth_config.get(field):
@@ -650,6 +653,30 @@ def get_social_login_config_errors(provider):
             "Redirect URI mismatch. "
             f"Secrets has {configured_redirect_uri}, but this app needs {current_redirect_uri}"
         )
+
+    if provider == "facebook":
+        if client_id.isdigit():
+            config_errors.append(
+                "auth.facebook.client_id looks like a Meta/Facebook App ID. "
+                "Use the Auth0 Application Client ID instead."
+            )
+
+        if client_id.startswith(("Ov", "Iv1.")):
+            config_errors.append(
+                "auth.facebook.client_id looks like a GitHub OAuth Client ID. "
+                "Use the Auth0 Application Client ID instead."
+            )
+
+        if server_metadata_url and "auth0.com" not in server_metadata_url:
+            config_errors.append(
+                "For Streamlit st.login, Facebook should go through Auth0. "
+                "Set auth.facebook.server_metadata_url to your Auth0 .well-known/openid-configuration URL."
+            )
+
+        if "auth0.com" in server_metadata_url and client_kwargs.get("connection") != "facebook":
+            config_errors.append(
+                'Missing or wrong: auth.facebook.client_kwargs = { "connection" = "facebook" }'
+            )
 
     return config_errors
 
