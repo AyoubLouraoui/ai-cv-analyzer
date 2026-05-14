@@ -3,17 +3,19 @@ import bcrypt
 from database import add_user, get_user
 
 
-def register_user(username, email, password):
-
-    hashed = bcrypt.hashpw(
+def hash_password(password):
+    return bcrypt.hashpw(
         password.encode(),
         bcrypt.gensalt()
-    )
+    ).decode()
+
+
+def register_user(username, email, password):
 
     add_user(
         username,
         email,
-        hashed.decode()
+        hash_password(password)
     )
 
 

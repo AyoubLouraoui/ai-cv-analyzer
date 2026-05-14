@@ -9,7 +9,7 @@ import secrets as py_secrets
 import requests
 from urllib.parse import urlencode, urlparse
 
-from auth_system import register_user, login_user
+from auth_system import register_user, login_user, hash_password
 from pdf_parser import extract_text_from_pdf
 from skill_extractor import extract_skills
 from matcher import calculate_match_score
@@ -77,6 +77,31 @@ def get_user_by_email_safe(email):
         return database.get_user_by_email(email)
 
     return None
+
+
+def get_current_user_safe():
+    if hasattr(database, "get_user"):
+        return database.get_user(st.session_state.username)
+
+    return None
+
+
+def get_user_by_social_identity_safe(provider, social_sub):
+    if hasattr(database, "get_user_by_social_identity") and social_sub:
+        return database.get_user_by_social_identity(provider, social_sub)
+
+    return None
+
+
+def update_user_social_identity_safe(username, provider, social_sub):
+    if hasattr(database, "update_user_social_identity") and social_sub:
+        database.update_user_social_identity(username, provider, social_sub)
+
+
+def update_user_account_credentials_safe(username, email, password=None):
+    if hasattr(database, "update_user_account_credentials"):
+        password_hash = hash_password(password) if password else None
+        database.update_user_account_credentials(username, email, password_hash)
 
 
 def is_valid_email(email):
@@ -157,13 +182,21 @@ def make_social_display_name(username):
 def ensure_social_user():
     email = get_social_user_value("email", "")
     name = get_social_user_value("given_name", "") or get_social_user_value("name", "")
+    provider = "google"
+    social_sub = get_social_user_value("sub", "")
 
     if not email:
-        email = f"{get_social_user_value('sub', py_secrets.token_hex(8))}@social.local"
+        email = f"{social_sub or py_secrets.token_hex(8)}@social.local"
+
+    existing_social_user = get_user_by_social_identity_safe(provider, social_sub)
+
+    if existing_social_user:
+        return existing_social_user[1]
 
     existing_user = get_user_by_email_safe(email)
 
     if existing_user:
+        update_user_social_identity_safe(existing_user[1], provider, social_sub)
         return existing_user[1]
 
     username = make_social_username(email, name)
@@ -179,6 +212,8 @@ def ensure_social_user():
         email,
         py_secrets.token_urlsafe(32)
     )
+
+    update_user_social_identity_safe(username, provider, social_sub)
 
     add_user_activity_safe(username, "social_register", f"Account created with social login: {email}")
 
@@ -1712,6 +1747,15 @@ if "confirm_update_user_id" not in st.session_state:
 if "confirm_delete_user_id" not in st.session_state:
     st.session_state.confirm_delete_user_id = None
 
+if "account_verification_code" not in st.session_state:
+    st.session_state.account_verification_code = ""
+
+if "account_verification_email" not in st.session_state:
+    st.session_state.account_verification_email = ""
+
+if "account_verified" not in st.session_state:
+    st.session_state.account_verified = False
+
 
 if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
@@ -1740,6 +1784,153 @@ if not st.session_state.logged_in and "code" in st.query_params:
 
         complete_direct_oauth(callback_provider, st.query_params.get("code"), callback_redirect_uri)
         st.stop()
+
+
+def get_current_account_email(user):
+    google_email = get_social_user_value("email", "") if is_social_login_active() else ""
+
+    if google_email:
+        return google_email.strip().lower()
+
+    if user and len(user) > 2 and user[2]:
+        return str(user[2]).strip().lower()
+
+    return ""
+
+
+def render_account_settings():
+    user = get_current_user_safe()
+
+    if not user:
+        st.error("Could not load your account. Please log out and log in again.")
+        return
+
+    current_email = get_current_account_email(user)
+    stored_email = str(user[2] or "").strip().lower()
+    is_google_account = is_social_login_active()
+
+    st.markdown(
+        """
+        <div class="app-hero">
+            <div class="hero-kicker">ACCOUNT SECURITY</div>
+            <h1 class="hero-title">Manage your login details.</h1>
+            <p class="hero-copy">
+                Update your account email or create a password after confirming
+                the verification code sent to your current email.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Account Settings</div>", unsafe_allow_html=True)
+
+    st.write(f"Username: **{st.session_state.username}**")
+
+    if current_email:
+        st.write(f"Verification email: **{current_email}**")
+    else:
+        st.warning("No email is linked to this account yet.")
+
+    if is_google_account:
+        st.info("You are logged in with Google. You can create a password after verifying your Google email.")
+
+    send_col, status_col = st.columns([1, 1])
+
+    with send_col:
+        if st.button("Send verification code", use_container_width=True, key="account_send_code"):
+            if not current_email or not is_valid_email(current_email):
+                st.error("Your current account email is not valid.")
+            else:
+                code = generate_verification_code()
+                sent, message = send_verification_email(current_email, code)
+
+                if sent:
+                    st.session_state.account_verification_code = code
+                    st.session_state.account_verification_email = current_email
+                    st.session_state.account_verified = False
+                    st.success(message)
+                else:
+                    st.error(message)
+
+    with status_col:
+        if st.session_state.account_verification_email == current_email and st.session_state.account_verification_code:
+            st.info("A verification code was sent to your current email.")
+        else:
+            st.caption("Send a code before saving changes.")
+
+    verification_code = st.text_input(
+        "Verification code",
+        key="account_verification_input",
+        placeholder="6-digit code"
+    )
+
+    new_email = st.text_input(
+        "New email",
+        value=stored_email or current_email,
+        key="account_new_email"
+    )
+
+    password_label = "Create password" if is_google_account else "New password"
+    new_password = st.text_input(
+        password_label,
+        type="password",
+        key="account_new_password",
+        placeholder="Leave empty if you only want to change email"
+    )
+    confirm_password = st.text_input(
+        "Confirm password",
+        type="password",
+        key="account_confirm_password",
+        placeholder="Repeat new password"
+    )
+
+    if st.button("Save account changes", use_container_width=True, key="account_save_changes"):
+        normalized_new_email = new_email.strip().lower()
+        email_changed = normalized_new_email != stored_email
+        password_changed = bool(new_password)
+
+        if not st.session_state.account_verification_code:
+            st.error("Please send a verification code first.")
+        elif st.session_state.account_verification_email != current_email:
+            st.error("Please send a fresh verification code to your current email.")
+        elif verification_code.strip() != st.session_state.account_verification_code:
+            st.error("Invalid verification code.")
+        elif not normalized_new_email or not is_valid_email(normalized_new_email):
+            st.error("Please enter a valid email address.")
+        elif not email_changed and not password_changed:
+            st.error("No changes to save.")
+        elif password_changed and len(new_password) < 6:
+            st.error("Password must be at least 6 characters.")
+        elif password_changed and new_password != confirm_password:
+            st.error("Passwords do not match.")
+        else:
+            existing_email_user = get_user_by_email_safe(normalized_new_email)
+
+            if existing_email_user and existing_email_user[1] != st.session_state.username:
+                st.error("This email is already used by another account.")
+            else:
+                try:
+                    update_user_account_credentials_safe(
+                        st.session_state.username,
+                        normalized_new_email,
+                        new_password if password_changed else None
+                    )
+                    st.session_state.account_verification_code = ""
+                    st.session_state.account_verification_email = ""
+                    st.session_state.account_verified = False
+                    add_user_activity_safe(
+                        st.session_state.username,
+                        "account_update",
+                        "Updated account email/password settings."
+                    )
+                    st.success("Account updated successfully.")
+                    st.rerun()
+                except Exception:
+                    st.error("Could not update your account. Please try again.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =======================
@@ -1950,11 +2141,15 @@ with st.sidebar:
         st.success("Admin mode")
         admin_page = st.radio(
             "Admin Menu",
-            ["Admin Dashboard", "CV Analyzer"],
+            ["Admin Dashboard", "CV Analyzer", "Account Settings"],
             key="admin_page"
         )
     else:
-        admin_page = "CV Analyzer"
+        admin_page = st.radio(
+            "Menu",
+            ["CV Analyzer", "Account Settings"],
+            key="user_page"
+        )
     st.write("### 🚀 Features")
     st.write("✅ CV Skills Extraction")
     st.write("✅ ATS Match Analysis")
@@ -1970,6 +2165,11 @@ with st.sidebar:
 # =======================
 # ADMIN DASHBOARD
 # =======================
+
+if admin_page == "Account Settings":
+    render_account_settings()
+    st.stop()
+
 
 if admin_page == "Admin Dashboard":
     st.markdown(

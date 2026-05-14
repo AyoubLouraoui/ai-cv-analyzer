@@ -78,6 +78,8 @@ def init_db():
 
         add_column_if_missing("users", "email", "TEXT UNIQUE")
         add_column_if_missing("users", "password", "TEXT")
+        add_column_if_missing("users", "social_provider", "TEXT")
+        add_column_if_missing("users", "social_sub", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -115,6 +117,8 @@ def init_db():
 
         add_column_if_missing("users", "email", "TEXT")
         add_column_if_missing("users", "password", "TEXT")
+        add_column_if_missing("users", "social_provider", "TEXT")
+        add_column_if_missing("users", "social_sub", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -158,7 +162,7 @@ def get_user(username):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password FROM users WHERE username={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub FROM users WHERE username={p}",
         (username,),
         fetch="one"
     )
@@ -168,10 +172,48 @@ def get_user_by_email(email):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password FROM users WHERE email={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub FROM users WHERE email={p}",
         (email,),
         fetch="one"
     )
+
+
+def get_user_by_social_identity(provider, social_sub):
+    p = placeholder()
+
+    return execute(
+        f"""
+        SELECT id, username, email, password, social_provider, social_sub
+        FROM users
+        WHERE social_provider={p} AND social_sub={p}
+        """,
+        (provider, social_sub),
+        fetch="one"
+    )
+
+
+def update_user_social_identity(username, provider, social_sub):
+    p = placeholder()
+
+    execute(
+        f"UPDATE users SET social_provider={p}, social_sub={p} WHERE username={p}",
+        (provider, social_sub, username)
+    )
+
+
+def update_user_account_credentials(username, email, password=None):
+    p = placeholder()
+
+    if password is None:
+        execute(
+            f"UPDATE users SET email={p} WHERE username={p}",
+            (email, username)
+        )
+    else:
+        execute(
+            f"UPDATE users SET email={p}, password={p} WHERE username={p}",
+            (email, password, username)
+        )
 
 
 def get_all_users():
