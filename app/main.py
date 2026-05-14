@@ -67,6 +67,16 @@ def update_user_safe(user_id, username, email):
         database.update_user(user_id, username, email)
 
 
+def update_user_password_safe(user_id, password):
+    if hasattr(database, "update_user_password"):
+        database.update_user_password(user_id, hash_password(password))
+
+
+def clear_user_social_identity_safe(user_id):
+    if hasattr(database, "clear_user_social_identity"):
+        database.clear_user_social_identity(user_id)
+
+
 def delete_user_safe(user_id):
     if hasattr(database, "delete_user"):
         database.delete_user(user_id)
@@ -1747,6 +1757,12 @@ if "confirm_update_user_id" not in st.session_state:
 if "confirm_delete_user_id" not in st.session_state:
     st.session_state.confirm_delete_user_id = None
 
+if "confirm_reset_password_user_id" not in st.session_state:
+    st.session_state.confirm_reset_password_user_id = None
+
+if "confirm_unlink_social_user_id" not in st.session_state:
+    st.session_state.confirm_unlink_social_user_id = None
+
 if "account_verification_code" not in st.session_state:
     st.session_state.account_verification_code = ""
 
@@ -1931,6 +1947,29 @@ def render_account_settings():
                     st.error("Could not update your account. Please try again.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+def get_admin_user_fields(user):
+    return {
+        "id": user[0],
+        "username": user[1],
+        "email": user[2],
+        "password": user[3] if len(user) > 3 else "",
+        "social_provider": user[4] if len(user) > 4 else "",
+        "social_sub": user[5] if len(user) > 5 else "",
+    }
+
+
+def get_admin_account_type(user):
+    fields = get_admin_user_fields(user)
+    provider = (fields["social_provider"] or "").strip().lower()
+
+    if provider == "google":
+        return "Google"
+    if provider:
+        return provider.title()
+
+    return "Application"
 
 
 # =======================
@@ -2205,8 +2244,20 @@ if admin_page == "Admin Dashboard":
     st.markdown("<div class='section-title'>Users</div>", unsafe_allow_html=True)
 
     if users:
-        users_df = pd.DataFrame(users, columns=["ID", "Username", "Email"])
-        st.dataframe(users_df, use_container_width=True, hide_index=True)
+        users_view = []
+
+        for user in users:
+            fields = get_admin_user_fields(user)
+            users_view.append({
+                "ID": fields["id"],
+                "Username": fields["username"],
+                "Email": fields["email"],
+                "Account Type": get_admin_account_type(user),
+                "Has Password": "Yes" if fields["password"] else "No",
+                "Google Linked": "Yes" if fields["social_provider"] == "google" else "No",
+            })
+
+        st.dataframe(pd.DataFrame(users_view), use_container_width=True, hide_index=True)
 
         st.write("### Manage User")
 
@@ -2220,33 +2271,79 @@ if admin_page == "Admin Dashboard":
             key="admin_selected_user"
         )
         selected_user = user_options[selected_label]
+        selected_fields = get_admin_user_fields(selected_user)
+        selected_account_type = get_admin_account_type(selected_user)
+
+        st.write("#### User Details")
+        detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
+        detail_col1.metric("User ID", selected_fields["id"])
+        detail_col2.metric("Account Type", selected_account_type)
+        detail_col3.metric("Password", "Created" if selected_fields["password"] else "Missing")
+        detail_col4.metric(
+            "Google",
+            "Linked" if selected_fields["social_provider"] == "google" else "Not linked"
+        )
+
+        st.caption(f"Email: {selected_fields['email'] or 'No email'}")
+
+        if selected_fields["social_provider"]:
+            st.info(
+                f"This user registered or logged in with {selected_account_type}. "
+                "You can still update the email, reset the password, unlink Google, or delete the account."
+            )
+        else:
+            st.info("This user registered normally from the application.")
 
         edit_username = st.text_input(
             "Username",
-            value=selected_user[1],
+            value=selected_fields["username"],
             key="admin_edit_username"
         )
         edit_email = st.text_input(
             "Email",
-            value=selected_user[2],
+            value=selected_fields["email"] or "",
             key="admin_edit_email"
         )
+        reset_password = st.text_input(
+            "Reset password",
+            type="password",
+            key="admin_reset_password",
+            placeholder="Enter a new password for this user"
+        )
 
-        col_edit, col_delete = st.columns(2)
+        col_edit, col_reset, col_unlink, col_delete = st.columns(4)
 
         with col_edit:
             if st.button("Update User", use_container_width=True):
-                st.session_state.confirm_update_user_id = selected_user[0]
+                st.session_state.confirm_update_user_id = selected_fields["id"]
                 st.session_state.confirm_delete_user_id = None
+                st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_unlink_social_user_id = None
+
+        with col_reset:
+            if st.button("Reset Password", use_container_width=True):
+                st.session_state.confirm_reset_password_user_id = selected_fields["id"]
+                st.session_state.confirm_update_user_id = None
+                st.session_state.confirm_delete_user_id = None
+                st.session_state.confirm_unlink_social_user_id = None
+
+        with col_unlink:
+            if st.button("Unlink Google", use_container_width=True, disabled=selected_fields["social_provider"] != "google"):
+                st.session_state.confirm_unlink_social_user_id = selected_fields["id"]
+                st.session_state.confirm_update_user_id = None
+                st.session_state.confirm_delete_user_id = None
+                st.session_state.confirm_reset_password_user_id = None
 
         with col_delete:
             if st.button("Delete User", use_container_width=True):
-                st.session_state.confirm_delete_user_id = selected_user[0]
+                st.session_state.confirm_delete_user_id = selected_fields["id"]
                 st.session_state.confirm_update_user_id = None
+                st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_unlink_social_user_id = None
 
-        if st.session_state.confirm_update_user_id == selected_user[0]:
+        if st.session_state.confirm_update_user_id == selected_fields["id"]:
             st.warning(
-                f"Confirm update for user '{selected_user[1]}'?"
+                f"Confirm update for user '{selected_fields['username']}'?"
             )
             confirm_update, cancel_update = st.columns(2)
 
@@ -2258,7 +2355,10 @@ if admin_page == "Admin Dashboard":
                         st.error("Please enter a valid email address.")
                     else:
                         try:
-                            update_user_safe(selected_user[0], edit_username, edit_email)
+                            update_user_safe(selected_fields["id"], edit_username, edit_email)
+                            if selected_fields["username"] == st.session_state.username:
+                                st.session_state.username = edit_username
+                                st.session_state.display_name = edit_username
                             st.session_state.confirm_update_user_id = None
                             st.success("User updated successfully.")
                             st.rerun()
@@ -2270,19 +2370,62 @@ if admin_page == "Admin Dashboard":
                     st.session_state.confirm_update_user_id = None
                     st.rerun()
 
-        if st.session_state.confirm_delete_user_id == selected_user[0]:
+        if st.session_state.confirm_reset_password_user_id == selected_fields["id"]:
+            st.warning(f"Confirm password reset for user '{selected_fields['username']}'?")
+            confirm_reset, cancel_reset = st.columns(2)
+
+            with confirm_reset:
+                if st.button("Yes, reset password", use_container_width=True):
+                    if not reset_password or len(reset_password) < 6:
+                        st.error("Password must be at least 6 characters.")
+                    else:
+                        try:
+                            update_user_password_safe(selected_fields["id"], reset_password)
+                            st.session_state.confirm_reset_password_user_id = None
+                            st.success("Password reset successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not reset password.")
+
+            with cancel_reset:
+                if st.button("Cancel password reset", use_container_width=True):
+                    st.session_state.confirm_reset_password_user_id = None
+                    st.rerun()
+
+        if st.session_state.confirm_unlink_social_user_id == selected_fields["id"]:
             st.warning(
-                f"Confirm delete for user '{selected_user[1]}'? This action cannot be undone."
+                f"Confirm unlink Google login for user '{selected_fields['username']}'?"
+            )
+            confirm_unlink, cancel_unlink = st.columns(2)
+
+            with confirm_unlink:
+                if st.button("Yes, unlink Google", use_container_width=True):
+                    try:
+                        clear_user_social_identity_safe(selected_fields["id"])
+                        st.session_state.confirm_unlink_social_user_id = None
+                        st.success("Google login unlinked successfully.")
+                        st.rerun()
+                    except Exception:
+                        st.error("Could not unlink Google login.")
+
+            with cancel_unlink:
+                if st.button("Cancel unlink", use_container_width=True):
+                    st.session_state.confirm_unlink_social_user_id = None
+                    st.rerun()
+
+        if st.session_state.confirm_delete_user_id == selected_fields["id"]:
+            st.warning(
+                f"Confirm delete for user '{selected_fields['username']}'? This action cannot be undone."
             )
             confirm_delete, cancel_delete = st.columns(2)
 
             with confirm_delete:
                 if st.button("Yes, delete user", use_container_width=True):
-                    if selected_user[1] == st.session_state.username:
+                    if selected_fields["username"] == st.session_state.username:
                         st.error("You cannot delete the account you are currently using.")
                     else:
                         try:
-                            delete_user_safe(selected_user[0])
+                            delete_user_safe(selected_fields["id"])
                             st.session_state.confirm_delete_user_id = None
                             st.success("User deleted successfully.")
                             st.rerun()

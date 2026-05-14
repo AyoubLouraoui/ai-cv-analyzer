@@ -28,6 +28,9 @@ def login_user(username, password):
 
     stored_password = user[3]
 
+    if not stored_password:
+        return False
+
     return bcrypt.checkpw(
         password.encode(),
         stored_password.encode()

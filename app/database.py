@@ -218,7 +218,11 @@ def update_user_account_credentials(username, email, password=None):
 
 def get_all_users():
     return execute(
-        "SELECT id, username, email FROM users ORDER BY id DESC",
+        """
+        SELECT id, username, email, password, social_provider, social_sub
+        FROM users
+        ORDER BY id DESC
+        """,
         fetch="all"
     )
 
@@ -229,6 +233,24 @@ def update_user(user_id, username, email):
     execute(
         f"UPDATE users SET username={p}, email={p} WHERE id={p}",
         (username, email, user_id)
+    )
+
+
+def update_user_password(user_id, password):
+    p = placeholder()
+
+    execute(
+        f"UPDATE users SET password={p} WHERE id={p}",
+        (password, user_id)
+    )
+
+
+def clear_user_social_identity(user_id):
+    p = placeholder()
+
+    execute(
+        f"UPDATE users SET social_provider=NULL, social_sub=NULL WHERE id={p}",
+        (user_id,)
     )
 
 
