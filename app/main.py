@@ -1703,6 +1703,46 @@ h3 {
     margin: 5px 0 0;
 }
 
+.st-key-profile_circle {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 10px;
+}
+
+.st-key-profile_circle button {
+    width: 58px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #0bd9a0 0%, #0ea5e9 100%) !important;
+    border: 2px solid rgba(240,246,255,0.72) !important;
+    box-shadow: 0 10px 26px rgba(14,165,233,0.26) !important;
+    color: #02111f !important;
+    font-weight: 900 !important;
+}
+
+.st-key-profile_circle button:hover {
+    transform: translateY(-1px) scale(1.03) !important;
+    opacity: 0.96 !important;
+    border-color: #f0f6ff !important;
+}
+
+.st-key-profile_circle button p {
+    font-size: 24px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    color: #02111f !important;
+    font-weight: 900 !important;
+}
+
+.profile-caption {
+    text-align: center;
+    color: #8fa8be;
+    font-size: 12px;
+    margin: -4px 0 14px;
+}
+
 @media (max-width: 760px) {
     .auth-page-wrap {
         grid-template-columns: 1fr;
@@ -2159,7 +2199,17 @@ with st.sidebar:
         unsafe_allow_html=True
     )
     welcome_name = st.session_state.display_name or st.session_state.username
+    is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
     st.success(f"👋 Welcome, {welcome_name}")
+
+    avatar_letter = (welcome_name.strip()[:1] or "U").upper()
+    if st.button(avatar_letter, key="profile_circle", help="Account settings"):
+        if is_admin:
+            st.session_state.admin_page = "Account Settings"
+        else:
+            st.session_state.user_page = "Account Settings"
+        st.rerun()
+    st.markdown("<div class='profile-caption'>Account settings</div>", unsafe_allow_html=True)
 
     if st.button("🚪 Logout", use_container_width=True):
         add_user_activity_safe(st.session_state.username, "logout", "User logged out")
@@ -2174,7 +2224,6 @@ with st.sidebar:
 
     st.title("⚙️ Dashboard")
     st.markdown("---")
-    is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
 
     if is_admin:
         st.success("Admin mode")
