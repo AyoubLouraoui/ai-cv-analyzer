@@ -1706,7 +1706,7 @@ h3 {
 .st-key-profile_circle {
     display: flex;
     justify-content: center;
-    margin: 6px 0 10px;
+    margin: 2px 0 6px;
 }
 
 .st-key-profile_circle button {
@@ -1736,11 +1736,53 @@ h3 {
     font-weight: 900 !important;
 }
 
-.profile-caption {
-    text-align: center;
+.profile-name {
+    color: #f0f6ff;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.15;
+    padding-top: 8px;
+    word-break: break-word;
+}
+
+.profile-hint {
     color: #8fa8be;
-    font-size: 12px;
-    margin: -4px 0 14px;
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.profile-menu-title {
+    color: #8fa8be;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    margin: 8px 0 8px;
+    text-transform: uppercase;
+}
+
+.st-key-profile_menu_dashboard button,
+.st-key-profile_menu_cv button,
+.st-key-profile_menu_account button {
+    background: rgba(15, 23, 42, 0.78) !important;
+    border: 1px solid rgba(143, 168, 190, 0.28) !important;
+    border-radius: 12px !important;
+    color: #f0f6ff !important;
+    font-weight: 700 !important;
+    margin-bottom: 6px !important;
+}
+
+.st-key-profile_menu_dashboard button:hover,
+.st-key-profile_menu_cv button:hover,
+.st-key-profile_menu_account button:hover {
+    border-color: rgba(11, 217, 160, 0.72) !important;
+    background: rgba(11, 217, 160, 0.12) !important;
+}
+
+.st-key-profile_menu_logout button {
+    background: rgba(127, 29, 29, 0.22) !important;
+    border: 1px solid rgba(248, 113, 113, 0.42) !important;
+    border-radius: 12px !important;
+    color: #fecaca !important;
+    font-weight: 800 !important;
 }
 
 @media (max-width: 760px) {
@@ -1811,6 +1853,9 @@ if "account_verification_email" not in st.session_state:
 
 if "account_verified" not in st.session_state:
     st.session_state.account_verified = False
+
+if "profile_menu_open" not in st.session_state:
+    st.session_state.profile_menu_open = False
 
 
 if not st.session_state.logged_in and is_social_login_active():
@@ -2200,44 +2245,77 @@ with st.sidebar:
     )
     welcome_name = st.session_state.display_name or st.session_state.username
     is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
-    st.success(f"👋 Welcome, {welcome_name}")
-
     avatar_letter = (welcome_name.strip()[:1] or "U").upper()
-    if st.button(avatar_letter, key="profile_circle", help="Account settings"):
-        if is_admin:
-            st.session_state.admin_page = "Account Settings"
-        else:
-            st.session_state.user_page = "Account Settings"
-        st.rerun()
-    st.markdown("<div class='profile-caption'>Account settings</div>", unsafe_allow_html=True)
 
-    if st.button("🚪 Logout", use_container_width=True):
-        add_user_activity_safe(st.session_state.username, "logout", "User logged out")
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.display_name = ""
-        st.session_state.is_admin = False
-        st.session_state.auth_message = ""
-        if is_social_login_active():
-            st.logout()
-        st.rerun()
+    profile_avatar_col, profile_name_col = st.columns([0.25, 0.75], vertical_alignment="center")
+    with profile_avatar_col:
+        if st.button(avatar_letter, key="profile_circle", help="Open account menu"):
+            st.session_state.profile_menu_open = not st.session_state.profile_menu_open
+            st.rerun()
+    with profile_name_col:
+        safe_welcome_name = html.escape(welcome_name)
+        st.markdown(
+            f"""
+            <div class="profile-name">{safe_welcome_name}</div>
+            <div class="profile-hint">Click the circle for menu</div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    if is_admin:
+        if st.session_state.get("admin_page") not in ["Admin Dashboard", "CV Analyzer", "Account Settings"]:
+            st.session_state.admin_page = "Admin Dashboard"
+        admin_page = st.session_state.admin_page
+    else:
+        if st.session_state.get("user_page") not in ["CV Analyzer", "Account Settings"]:
+            st.session_state.user_page = "CV Analyzer"
+        admin_page = st.session_state.user_page
+
+    if st.session_state.profile_menu_open:
+        st.markdown("<div class='profile-menu-title'>Account menu</div>", unsafe_allow_html=True)
+
+        if st.button("Dashboard", use_container_width=True, key="profile_menu_dashboard"):
+            if is_admin:
+                st.session_state.admin_page = "Admin Dashboard"
+            else:
+                st.session_state.user_page = "CV Analyzer"
+            st.session_state.profile_menu_open = False
+            st.rerun()
+
+        if st.button("CV Analyzer", use_container_width=True, key="profile_menu_cv"):
+            if is_admin:
+                st.session_state.admin_page = "CV Analyzer"
+            else:
+                st.session_state.user_page = "CV Analyzer"
+            st.session_state.profile_menu_open = False
+            st.rerun()
+
+        if st.button("Account Settings", use_container_width=True, key="profile_menu_account"):
+            if is_admin:
+                st.session_state.admin_page = "Account Settings"
+            else:
+                st.session_state.user_page = "Account Settings"
+            st.session_state.profile_menu_open = False
+            st.rerun()
+
+        if st.button("Logout", use_container_width=True, key="profile_menu_logout"):
+            add_user_activity_safe(st.session_state.username, "logout", "User logged out")
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.session_state.display_name = ""
+            st.session_state.is_admin = False
+            st.session_state.auth_message = ""
+            st.session_state.profile_menu_open = False
+            if is_social_login_active():
+                st.logout()
+            st.rerun()
+
+    if is_admin:
+        st.success("Admin mode")
 
     st.title("⚙️ Dashboard")
     st.markdown("---")
 
-    if is_admin:
-        st.success("Admin mode")
-        admin_page = st.radio(
-            "Admin Menu",
-            ["Admin Dashboard", "CV Analyzer", "Account Settings"],
-            key="admin_page"
-        )
-    else:
-        admin_page = st.radio(
-            "Menu",
-            ["CV Analyzer", "Account Settings"],
-            key="user_page"
-        )
     st.write("### 🚀 Features")
     st.write("✅ CV Skills Extraction")
     st.write("✅ ATS Match Analysis")
