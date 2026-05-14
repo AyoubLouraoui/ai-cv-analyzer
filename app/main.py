@@ -1828,8 +1828,6 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Continue with Google", use_container_width=True, key="google_login"):
                 start_social_login("google")
-            if st.button("Continue with GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
-                start_social_login("github")
             if st.button("Continue with Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
                 start_social_login("facebook")
 
@@ -1898,8 +1896,6 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                 start_social_login("google")
-            if st.button("Continue with GitHub", help="Create account with GitHub", use_container_width=True, key="github_reg"):
-                start_social_login("github")
             if st.button("Continue with Facebook", help="Create account with Facebook", use_container_width=True, key="fb_reg"):
                 start_social_login("facebook")
 
