@@ -183,6 +183,45 @@ def is_admin_user(username):
     return username.strip().lower() in admin_usernames
 
 
+def split_secret_list(value):
+    if not value:
+        return []
+
+    if isinstance(value, str):
+        return [
+            item.strip()
+            for item in value.split(",")
+            if item.strip()
+        ]
+
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def get_admin_reset_username_for_email(email):
+    admin_emails = split_secret_list(get_secret("ADMIN_EMAILS", ""))
+    admin_email = get_secret("ADMIN_EMAIL", "")
+
+    if admin_email:
+        admin_emails.append(str(admin_email).strip())
+
+    normalized_admin_emails = {
+        item.lower()
+        for item in admin_emails
+        if item
+    }
+
+    if email.strip().lower() not in normalized_admin_emails:
+        return ""
+
+    admin_username = get_secret("ADMIN_USERNAME", "")
+
+    if admin_username:
+        return str(admin_username).strip()
+
+    admin_usernames = split_secret_list(get_secret("ADMIN_USERNAMES", "admin"))
+    return admin_usernames[0] if admin_usernames else "admin"
+
+
 def get_social_user_value(key, default=""):
     try:
         return st.user.get(key, default)
@@ -1914,6 +1953,21 @@ if "account_verified" not in st.session_state:
 if "profile_menu_open" not in st.session_state:
     st.session_state.profile_menu_open = False
 
+if "forgot_password_open" not in st.session_state:
+    st.session_state.forgot_password_open = False
+
+if "forgot_password_code" not in st.session_state:
+    st.session_state.forgot_password_code = ""
+
+if "forgot_password_email" not in st.session_state:
+    st.session_state.forgot_password_email = ""
+
+if "forgot_password_user_id" not in st.session_state:
+    st.session_state.forgot_password_user_id = None
+
+if "forgot_password_username" not in st.session_state:
+    st.session_state.forgot_password_username = ""
+
 
 if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
@@ -2182,6 +2236,122 @@ def get_admin_account_type(user):
     return "Application"
 
 
+def clear_forgot_password_state(keep_open=False):
+    st.session_state.forgot_password_open = keep_open
+    st.session_state.forgot_password_code = ""
+    st.session_state.forgot_password_email = ""
+    st.session_state.forgot_password_user_id = None
+    st.session_state.forgot_password_username = ""
+
+
+def render_forgot_password_panel():
+    st.markdown("#### Reset password")
+    st.caption("Enter the email linked to your account. We will send a confirmation code first.")
+
+    reset_email = st.text_input(
+        "Account email",
+        key="forgot_password_email_input",
+        placeholder="you@example.com"
+    )
+
+    send_reset_code_col, close_reset_col = st.columns([1, 1])
+
+    with send_reset_code_col:
+        if st.button("Send reset code", use_container_width=True, key="forgot_password_send_code"):
+            normalized_email = reset_email.strip().lower()
+
+            if not normalized_email or not is_valid_email(normalized_email):
+                st.error("Please enter a valid email address.")
+            else:
+                user = get_user_by_email_safe(normalized_email)
+                reset_username = ""
+                reset_user_id = None
+
+                if user:
+                    reset_user_id = user[0]
+                    reset_username = user[1]
+                else:
+                    reset_username = get_admin_reset_username_for_email(normalized_email)
+
+                if not reset_username:
+                    st.error("No account was found with this email.")
+                else:
+                    code = generate_verification_code()
+                    sent, message = send_verification_email(normalized_email, code)
+
+                    if sent:
+                        st.session_state.forgot_password_code = code
+                        st.session_state.forgot_password_email = normalized_email
+                        st.session_state.forgot_password_user_id = reset_user_id
+                        st.session_state.forgot_password_username = reset_username
+                        st.success(message)
+                    else:
+                        st.error(message)
+
+    with close_reset_col:
+        if st.button("Back to login", use_container_width=True, key="forgot_password_back"):
+            clear_forgot_password_state(keep_open=False)
+            st.rerun()
+
+    if st.session_state.forgot_password_code:
+        st.info("A confirmation code was sent to your email. Enter it before choosing a new password.")
+
+        reset_code = st.text_input(
+            "Confirmation code",
+            key="forgot_password_code_input",
+            placeholder="6-digit code"
+        )
+        new_password = st.text_input(
+            "New password",
+            type="password",
+            key="forgot_password_new_password",
+            placeholder="Enter a new password"
+        )
+        confirm_new_password = st.text_input(
+            "Confirm new password",
+            type="password",
+            key="forgot_password_confirm_password",
+            placeholder="Repeat the new password"
+        )
+
+        if st.button("Reset password and open dashboard", use_container_width=True, key="forgot_password_reset"):
+            normalized_email = reset_email.strip().lower()
+
+            if normalized_email != st.session_state.forgot_password_email:
+                st.error("Please use the same email that received the code.")
+            elif reset_code.strip() != st.session_state.forgot_password_code:
+                st.error("Invalid confirmation code.")
+            elif len(new_password) < 6:
+                st.error("Password must be at least 6 characters.")
+            elif new_password != confirm_new_password:
+                st.error("Passwords do not match.")
+            elif not st.session_state.forgot_password_username:
+                st.error("Reset session expired. Please send a new code.")
+            else:
+                try:
+                    username = st.session_state.forgot_password_username
+                    if st.session_state.forgot_password_user_id:
+                        update_user_password_safe(st.session_state.forgot_password_user_id, new_password)
+                    else:
+                        existing_admin_user = database.get_user(username)
+
+                        if existing_admin_user:
+                            update_user_password_safe(existing_admin_user[0], new_password)
+                        else:
+                            register_user(username, st.session_state.forgot_password_email, new_password)
+
+                    add_user_activity_safe(username, "password_reset", "Password reset with email verification.")
+                    clear_forgot_password_state(keep_open=False)
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.session_state.display_name = username
+                    st.session_state.is_admin = is_admin_user(username)
+                    st.session_state.auth_message = ""
+                    st.rerun()
+                except Exception:
+                    st.error("Could not reset your password. Please try again.")
+
+
 # =======================
 # LOGIN / REGISTER
 # =======================
@@ -2276,6 +2446,15 @@ if not st.session_state.logged_in:
                     st.rerun()
                 else:
                     st.error("❌ Invalid username or password")
+
+            if st.button("Forgot password?", use_container_width=True, key="forgot_password_toggle"):
+                st.session_state.forgot_password_open = not st.session_state.forgot_password_open
+                if not st.session_state.forgot_password_open:
+                    clear_forgot_password_state(keep_open=False)
+                st.rerun()
+
+            if st.session_state.forgot_password_open:
+                render_forgot_password_panel()
 
             st.markdown(
                 "<div style='text-align:center;margin:10px 0 8px;font-size:11.5px;color:#6f8499;letter-spacing:0.08em;'>OR CONTINUE WITH</div>",
