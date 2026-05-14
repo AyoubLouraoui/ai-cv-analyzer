@@ -362,6 +362,18 @@ def get_direct_oauth_redirect_uri():
     return get_app_base_url()
 
 
+def get_redirect_uri_from_oauth_state(state):
+    if not state:
+        return None
+
+    parts = str(state).split(":", 2)
+
+    if len(parts) == 3 and parts[2].startswith(("http://", "https://")):
+        return parts[2]
+
+    return None
+
+
 def get_direct_oauth_url(provider):
     provider_config = get_oauth_config(provider)
     client_id = provider_config.get("client_id")
@@ -371,14 +383,18 @@ def get_direct_oauth_url(provider):
 
     if "oauth_states" not in st.session_state:
         st.session_state.oauth_states = {}
+    if "oauth_redirect_uris" not in st.session_state:
+        st.session_state.oauth_redirect_uris = {}
 
+    redirect_uri = get_direct_oauth_redirect_uri()
     state = st.session_state.oauth_states.get(provider)
-    if not state:
-        state = f"{provider}:{py_secrets.token_urlsafe(24)}"
+
+    if not state or get_redirect_uri_from_oauth_state(state) != redirect_uri:
+        state = f"{provider}:{py_secrets.token_urlsafe(24)}:{redirect_uri}"
         st.session_state.oauth_states[provider] = state
 
+    st.session_state.oauth_redirect_uris[state] = redirect_uri
     st.session_state.oauth_state = state
-    redirect_uri = get_direct_oauth_redirect_uri()
 
     if provider == "github":
         params = {
@@ -438,7 +454,9 @@ def render_direct_oauth_button(provider, label):
            target="_blank"
            rel="opener"
            title="{html.escape(title)}"
-           aria-label="{html.escape(title)}"></a>
+           aria-label="{html.escape(title)}">
+            <span class="social-label">{html.escape(label)}</span>
+        </a>
         """,
         unsafe_allow_html=True
     )
@@ -471,11 +489,11 @@ def show_oauth_token_error(provider, token_response, token_data):
         st.caption(f"HTTP status: {token_response.status_code}")
 
 
-def complete_direct_oauth(provider, code):
+def complete_direct_oauth(provider, code, redirect_uri=None):
     provider_config = get_oauth_config(provider)
     client_id = provider_config.get("client_id")
     client_secret = provider_config.get("client_secret")
-    redirect_uri = get_direct_oauth_redirect_uri()
+    redirect_uri = redirect_uri or get_direct_oauth_redirect_uri()
 
     if not client_id or not client_secret:
         st.error(f"{provider.title()} login is not configured. Add client_id and client_secret in Secrets.")
@@ -560,6 +578,8 @@ def complete_direct_oauth(provider, code):
         add_user_activity_safe(username, "social_login", f"User logged in with {provider}")
         if "oauth_states" in st.session_state:
             st.session_state.oauth_states.pop(provider, None)
+        if "oauth_redirect_uris" in st.session_state:
+            st.session_state.oauth_redirect_uris.pop(st.query_params.get("state"), None)
         st.query_params.clear()
         st.rerun()
 
@@ -1436,88 +1456,55 @@ h3 {
 }
 
 .st-key-google_login button,
-.st-key-google_login a,
-.st-key-google_reg button,
-.st-key-google_reg a,
-.st-key-github_login button,
-.st-key-github_reg button,
-.st-key-fb_login button,
-.st-key-fb_reg button {
+.st-key-google_reg button {
     min-height: 48px !important;
-    font-size: 0 !important;
-    color: transparent !important;
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(148,163,184,0.18) !important;
-    box-shadow: none !important;
+    font-size: 15px !important;
+    color: #0f172a !important;
+    background: #f8fafc !important;
+    border: 1px solid #d7dee8 !important;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.08) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 0 !important;
+    gap: 10px !important;
+    padding: 0 16px !important;
     transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease !important;
 }
 
-.st-key-google_login button,
-.st-key-google_login a,
-.st-key-google_reg button,
-.st-key-google_reg a {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: 24px 24px !important;
-}
-
 .st-key-google_login button:hover,
-.st-key-google_login a:hover,
-.st-key-google_reg button:hover,
-.st-key-google_reg a:hover,
-.st-key-github_login button:hover,
-.st-key-github_reg button:hover,
-.st-key-fb_login button:hover,
-.st-key-fb_reg button:hover {
+.st-key-google_reg button:hover {
     transform: translateY(-1px) !important;
-    opacity: 0.88 !important;
-    border-color: rgba(11,217,160,0.36) !important;
+    opacity: 0.96 !important;
+    border-color: #b8c4d4 !important;
 }
 
 .st-key-google_login button::before,
-.st-key-google_login a::before,
-.st-key-google_reg button::before,
-.st-key-google_reg a::before,
-.st-key-github_login button::before,
-.st-key-github_reg button::before,
-.st-key-fb_login button::before,
-.st-key-fb_reg button::before {
+.st-key-google_reg button::before {
     content: "";
     display: block;
-    width: 24px;
-    height: 24px;
-    margin: 0 auto;
+    width: 20px;
+    height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    flex: 0 0 24px;
+    flex: 0 0 20px;
 }
 
-.st-key-google_login button::before,
-.st-key-google_login a::before,
-.st-key-google_reg button::before,
-.st-key-google_reg a::before {
-    display: none !important;
+.st-key-google_login button [data-testid="stMarkdownContainer"],
+.st-key-google_reg button [data-testid="stMarkdownContainer"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .st-key-google_login button p,
 .st-key-google_reg button p {
-    display: none !important;
-}
-
-.st-key-github_login button::before,
-.st-key-github_reg button::before {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23f0f6ff' d='M12 .5C5.73.5.65 5.58.65 11.85c0 5.02 3.26 9.28 7.78 10.78.57.11.78-.25.78-.55v-2.17c-3.17.69-3.84-1.36-3.84-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.24 3.32.95.1-.74.4-1.24.72-1.53-2.53-.29-5.19-1.27-5.19-5.64 0-1.25.45-2.26 1.18-3.06-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.14 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.81 1.18 3.06 0 4.38-2.67 5.34-5.21 5.63.41.36.77 1.06.77 2.14v3.17c0 .3.21.66.79.55 4.52-1.5 7.77-5.76 7.77-10.78C23.35 5.58 18.27.5 12 .5z'/%3E%3C/svg%3E");
-}
-
-.st-key-fb_login button::before,
-.st-key-fb_reg button::before {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle fill='%231877f2' cx='12' cy='12' r='12'/%3E%3Cpath fill='%23fff' d='M15.12 12.75l.38-2.49h-2.39V8.64c0-.68.33-1.34 1.4-1.34h1.09V5.18s-.99-.17-1.94-.17c-1.98 0-3.27 1.2-3.27 3.37v1.88H8.2v2.49h2.19v6.02h2.72v-6.02h2.01z'/%3E%3C/svg%3E");
+    color: #0f172a !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
 }
 
 .direct-oauth-btn {
@@ -1527,35 +1514,44 @@ h3 {
     width: 100%;
     min-height: 48px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(148,163,184,0.18);
-    box-shadow: none;
+    background: #f8fafc;
+    border: 1px solid #d7dee8;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.08);
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 500;
+    gap: 10px;
+    margin-top: 8px;
     text-decoration: none;
     transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease;
 }
 
 .direct-oauth-btn:hover {
     transform: translateY(-1px);
-    opacity: 0.88;
-    border-color: rgba(11,217,160,0.36);
+    opacity: 0.96;
+    border-color: #b8c4d4;
 }
 
 .direct-oauth-btn::before {
     content: "";
     display: block;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
 }
 
 .direct-oauth-btn.github::before {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23f0f6ff' d='M12 .5C5.73.5.65 5.58.65 11.85c0 5.02 3.26 9.28 7.78 10.78.57.11.78-.25.78-.55v-2.17c-3.17.69-3.84-1.36-3.84-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.24 3.32.95.1-.74.4-1.24.72-1.53-2.53-.29-5.19-1.27-5.19-5.64 0-1.25.45-2.26 1.18-3.06-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.14 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.81 1.18 3.06 0 4.38-2.67 5.34-5.21 5.63.41.36.77 1.06.77 2.14v3.17c0 .3.21.66.79.55 4.52-1.5 7.77-5.76 7.77-10.78C23.35 5.58 18.27.5 12 .5z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23181717' d='M12 .5C5.73.5.65 5.58.65 11.85c0 5.02 3.26 9.28 7.78 10.78.57.11.78-.25.78-.55v-2.17c-3.17.69-3.84-1.36-3.84-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.24 3.32.95.1-.74.4-1.24.72-1.53-2.53-.29-5.19-1.27-5.19-5.64 0-1.25.45-2.26 1.18-3.06-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.14 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.81 1.18 3.06 0 4.38-2.67 5.34-5.21 5.63.41.36.77 1.06.77 2.14v3.17c0 .3.21.66.79.55 4.52-1.5 7.77-5.76 7.77-10.78C23.35 5.58 18.27.5 12 .5z'/%3E%3C/svg%3E");
 }
 
 .direct-oauth-btn.facebook::before {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle fill='%231877f2' cx='12' cy='12' r='12'/%3E%3Cpath fill='%23fff' d='M15.12 12.75l.38-2.49h-2.39V8.64c0-.68.33-1.34 1.4-1.34h1.09V5.18s-.99-.17-1.94-.17c-1.98 0-3.27 1.2-3.27 3.37v1.88H8.2v2.49h2.19v6.02h2.72v-6.02h2.01z'/%3E%3C/svg%3E");
+}
+
+.social-label {
+    line-height: 1.2;
 }
 
 .stTextInput input,
@@ -1685,13 +1681,17 @@ if not st.session_state.logged_in and "code" in st.query_params:
         callback_provider = callback_state.split(":", 1)[0]
 
     expected_state = st.session_state.get("oauth_states", {}).get(callback_provider) or st.session_state.get("oauth_state")
+    callback_redirect_uri = (
+        st.session_state.get("oauth_redirect_uris", {}).get(callback_state)
+        or get_redirect_uri_from_oauth_state(callback_state)
+    )
 
     if callback_provider in ["github", "facebook"]:
         if expected_state and callback_state != expected_state:
             st.error("OAuth state mismatch. Please try logging in again.")
             st.stop()
 
-        complete_direct_oauth(callback_provider, st.query_params.get("code"))
+        complete_direct_oauth(callback_provider, st.query_params.get("code"), callback_redirect_uri)
         st.stop()
 
 
@@ -1794,14 +1794,10 @@ if not st.session_state.logged_in:
                 unsafe_allow_html=True
             )
 
-            g_col, gh_col, fb_col = st.columns(3)
-            with g_col:
-                if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
-                    start_social_login("google")
-            with gh_col:
-                render_direct_oauth_button("github", "GitHub")
-            with fb_col:
-                render_direct_oauth_button("facebook", "Facebook")
+            if st.button("Continue with Google", help="Continue with Google", use_container_width=True, key="google_login"):
+                start_social_login("google")
+            render_direct_oauth_button("github", "Continue with GitHub")
+            render_direct_oauth_button("facebook", "Continue with Facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1866,14 +1862,10 @@ if not st.session_state.logged_in:
                 "Google, GitHub, or Facebook will create your account automatically and redirect you to your dashboard."
             )
 
-            g2_col, gh2_col, fb2_col = st.columns(3)
-            with g2_col:
-                if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
-                    start_social_login("google")
-            with gh2_col:
-                render_direct_oauth_button("github", "Sign up GitHub")
-            with fb2_col:
-                render_direct_oauth_button("facebook", "Sign up Facebook")
+            if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
+                start_social_login("google")
+            render_direct_oauth_button("github", "Continue with GitHub")
+            render_direct_oauth_button("facebook", "Continue with Facebook")
 
     st.stop()
 
