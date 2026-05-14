@@ -1839,7 +1839,8 @@ h3 {
 
 .st-key-profile_menu_dashboard button,
 .st-key-profile_menu_cv button,
-.st-key-profile_menu_account button {
+.st-key-profile_menu_account button,
+.st-key-profile_menu_about button {
     background: rgba(15, 23, 42, 0.78) !important;
     border: 1px solid rgba(143, 168, 190, 0.28) !important;
     border-radius: 12px !important;
@@ -1850,7 +1851,8 @@ h3 {
 
 .st-key-profile_menu_dashboard button:hover,
 .st-key-profile_menu_cv button:hover,
-.st-key-profile_menu_account button:hover {
+.st-key-profile_menu_account button:hover,
+.st-key-profile_menu_about button:hover {
     border-color: rgba(11, 217, 160, 0.72) !important;
     background: rgba(11, 217, 160, 0.12) !important;
 }
@@ -2040,7 +2042,111 @@ h3 {
     font-weight: 800;
 }
 
+.about-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.about-panel {
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(11,217,160,0.08), rgba(14,165,233,0.05)),
+        rgba(5, 12, 24, 0.82);
+    padding: 24px;
+    box-shadow: 0 18px 42px rgba(0,0,0,0.16);
+}
+
+.about-kicker {
+    color: #0bd9a0;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.about-panel h2 {
+    margin: 0 0 12px;
+    color: #f0f6ff;
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.about-panel p {
+    color: #b8c7d8;
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0 0 14px;
+}
+
+.about-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.about-feature {
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 14px;
+    background: rgba(2,6,23,0.42);
+    color: #e2eaf5;
+    font-weight: 800;
+    padding: 13px 14px;
+}
+
+.about-links {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.about-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 13px;
+    color: #f0f6ff !important;
+    background: rgba(15,23,42,0.78);
+    border: 1px solid rgba(143,168,190,0.28);
+    text-decoration: none !important;
+    font-weight: 800;
+    transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.about-link:hover {
+    transform: translateY(-1px);
+    border-color: rgba(11,217,160,0.72);
+    background: rgba(11,217,160,0.12);
+}
+
+.about-link.missing {
+    color: #8fa8be !important;
+    cursor: default;
+}
+
+.about-signature {
+    color: #8fa8be;
+    font-size: 13px;
+    line-height: 1.65;
+    margin-top: 14px;
+}
+
 @media (max-width: 760px) {
+    .about-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .about-feature-grid {
+        grid-template-columns: 1fr;
+    }
+
     .auth-page-wrap {
         grid-template-columns: 1fr;
     }
@@ -2369,6 +2475,114 @@ def render_account_settings():
                     st.error("Could not update your account. Please try again.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_about_link(label, secret_name, default_url=""):
+    url = str(get_secret(secret_name, default_url) or default_url).strip()
+    safe_label = html.escape(label)
+
+    if url:
+        return (
+            f"<a class='about-link' href='{html.escape(url, quote=True)}' target='_blank' rel='noopener noreferrer'>"
+            f"<span>{safe_label}</span><span>Open</span></a>"
+        )
+
+    return (
+        f"<div class='about-link missing'><span>{safe_label}</span>"
+        f"<span>Coming soon</span></div>"
+    )
+
+
+def render_about_page():
+    st.markdown(
+        """
+        <div class="app-hero">
+            <div class="hero-kicker">ABOUT AI CV ANALYZER</div>
+            <h1 class="hero-title">Built by Ayoub Louraoui to make smarter CVs accessible.</h1>
+            <p class="hero-copy">
+                A practical AI project created to help talented people improve their resumes,
+                understand ATS systems, and get closer to real interview opportunities.
+            </p>
+            <div class="hero-strip">
+                <div class="hero-pill">AI CV analysis</div>
+                <div class="hero-pill">ATS optimization</div>
+                <div class="hero-pill">Skill detection</div>
+                <div class="hero-pill">Practical career tools</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    portfolio_link = render_about_link("Portfolio Website", "PORTFOLIO_URL", "https://ayoublouraoui.netlify.app/")
+    github_link = render_about_link("GitHub", "GITHUB_URL", "https://github.com/AyoubLouraoui")
+    linkedin_link = render_about_link("LinkedIn", "LINKEDIN_URL", "https://www.linkedin.com/in/ayoub-louraoui-91111628a/")
+    instagram_link = render_about_link("Instagram", "INSTAGRAM_URL", "https://www.instagram.com/ayoublouraoui_/")
+
+    st.markdown(
+        f"""
+        <div class="about-shell">
+            <div class="about-panel">
+                <div class="about-kicker">The Story</div>
+                <h2>Hi, I'm Ayoub Louraoui.</h2>
+                <p>
+                    I'm an AI and Data enthusiast passionate about building smart and useful
+                    digital solutions.
+                </p>
+                <p>
+                    AI CV Analyzer was created from a simple observation: many talented people
+                    struggle to get interviews not because they lack skills, but because their CVs
+                    are not optimized for modern recruitment systems.
+                </p>
+                <p>
+                    As someone interested in Artificial Intelligence and data-driven technologies,
+                    I wanted to build a project that solves a real problem while also reflecting my
+                    passion for AI and web development.
+                </p>
+                <p>That's how AI CV Analyzer was born.</p>
+                <p>
+                    This platform uses Artificial Intelligence to analyze resumes, detect strengths
+                    and weaknesses, identify important keywords, and provide smart suggestions to
+                    help users improve their CVs and become more ATS-friendly.
+                </p>
+                <p>
+                    More than just a project, AI CV Analyzer represents my journey of learning,
+                    building, and turning ideas into practical tools that can help people in real life.
+                </p>
+                <p>
+                    My goal is to create technology that is simple, useful, and accessible to everyone.
+                </p>
+                <div class="about-signature">Thank you for visiting and supporting the project 🚀</div>
+            </div>
+
+            <div class="about-panel">
+                <div class="about-kicker">Features</div>
+                <h2>What It Helps With</h2>
+                <div class="about-feature-grid">
+                    <div class="about-feature">AI-powered CV analysis</div>
+                    <div class="about-feature">ATS compatibility checking</div>
+                    <div class="about-feature">Keyword and skill detection</div>
+                    <div class="about-feature">Personalized suggestions</div>
+                    <div class="about-feature">Simple and fast user experience</div>
+                </div>
+
+                <div style="height: 22px;"></div>
+                <div class="about-kicker">Connect With Me</div>
+                <h2>Find My Work</h2>
+                <div class="about-links">
+                    {portfolio_link}
+                    {github_link}
+                    {linkedin_link}
+                    {instagram_link}
+                </div>
+                <div class="about-signature">
+                    Links point to my portfolio, GitHub, LinkedIn, and Instagram profiles.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def get_admin_user_fields(user):
@@ -2880,11 +3094,11 @@ with st.sidebar:
         )
 
     if is_admin:
-        if st.session_state.get("admin_page") not in ["Admin Dashboard", "CV Analyzer", "Account Settings"]:
+        if st.session_state.get("admin_page") not in ["Admin Dashboard", "CV Analyzer", "Account Settings", "About"]:
             st.session_state.admin_page = "Admin Dashboard"
         admin_page = st.session_state.admin_page
     else:
-        if st.session_state.get("user_page") not in ["CV Analyzer", "Account Settings"]:
+        if st.session_state.get("user_page") not in ["CV Analyzer", "Account Settings", "About"]:
             st.session_state.user_page = "CV Analyzer"
         admin_page = st.session_state.user_page
 
@@ -2910,6 +3124,14 @@ with st.sidebar:
                 st.session_state.admin_page = "Account Settings"
             else:
                 st.session_state.user_page = "Account Settings"
+            st.session_state.profile_menu_open = False
+            st.rerun()
+
+        if st.button("About", use_container_width=True, key="profile_menu_about"):
+            if is_admin:
+                st.session_state.admin_page = "About"
+            else:
+                st.session_state.user_page = "About"
             st.session_state.profile_menu_open = False
             st.rerun()
 
@@ -2949,6 +3171,11 @@ with st.sidebar:
 
 if admin_page == "Account Settings":
     render_account_settings()
+    st.stop()
+
+
+if admin_page == "About":
+    render_about_page()
     st.stop()
 
 
