@@ -5,6 +5,7 @@ import pandas as pd
 import re
 import json
 import html
+import base64
 import secrets as py_secrets
 import requests
 from urllib.parse import urlencode, urlparse
@@ -112,6 +113,42 @@ def update_user_account_credentials_safe(username, email, password=None):
     if hasattr(database, "update_user_account_credentials"):
         password_hash = hash_password(password) if password else None
         database.update_user_account_credentials(username, email, password_hash)
+
+
+def update_user_profile_image_safe(username, profile_image):
+    if hasattr(database, "update_user_profile_image"):
+        database.update_user_profile_image(username, profile_image)
+
+
+def get_user_profile_image(user):
+    if user and len(user) > 6 and user[6]:
+        profile_image = str(user[6])
+        if profile_image.startswith(("data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,")):
+            return profile_image
+
+    return ""
+
+
+def uploaded_profile_image_to_data_uri(uploaded_file):
+    allowed_types = {
+        "image/png": "image/png",
+        "image/jpeg": "image/jpeg",
+        "image/jpg": "image/jpeg",
+        "image/webp": "image/webp",
+    }
+    mime_type = allowed_types.get(uploaded_file.type)
+
+    if not mime_type:
+        return None, "Please upload a PNG, JPG, or WEBP image."
+
+    image_bytes = uploaded_file.getvalue()
+    max_size = 1_000_000
+
+    if len(image_bytes) > max_size:
+        return None, "Profile image must be 1 MB or smaller."
+
+    encoded_image = base64.b64encode(image_bytes).decode("ascii")
+    return f"data:{mime_type};base64,{encoded_image}", ""
 
 
 def is_valid_email(email):
@@ -1785,6 +1822,24 @@ h3 {
     font-weight: 800 !important;
 }
 
+.account-profile-preview {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0bd9a0 0%, #0ea5e9 100%);
+    background-size: cover;
+    background-position: center;
+    border: 3px solid rgba(240,246,255,0.84);
+    box-shadow: 0 14px 36px rgba(14,165,233,0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #02111f;
+    font-size: 36px;
+    font-weight: 900;
+    margin-bottom: 14px;
+}
+
 @media (max-width: 760px) {
     .auth-page-wrap {
         grid-template-columns: 1fr;
@@ -1909,6 +1964,7 @@ def render_account_settings():
     current_email = get_current_account_email(user)
     stored_email = str(user[2] or "").strip().lower()
     is_google_account = is_social_login_active()
+    current_profile_image = get_user_profile_image(user)
 
     st.markdown(
         """
@@ -1928,6 +1984,72 @@ def render_account_settings():
     st.markdown("<div class='section-title'>Account Settings</div>", unsafe_allow_html=True)
 
     st.write(f"Username: **{st.session_state.username}**")
+
+    profile_letter = (st.session_state.display_name or st.session_state.username or "U").strip()[:1].upper()
+
+    if current_profile_image:
+        st.markdown(
+            f"<div class='account-profile-preview' style='background-image: url({json.dumps(current_profile_image)});'></div>",
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f"<div class='account-profile-preview'>{html.escape(profile_letter)}</div>",
+            unsafe_allow_html=True
+        )
+
+    profile_upload = st.file_uploader(
+        "Profile picture",
+        type=["png", "jpg", "jpeg", "webp"],
+        key="account_profile_picture"
+    )
+    profile_save_col, profile_remove_col = st.columns(2)
+
+    with profile_save_col:
+        if st.button(
+            "Save profile picture",
+            use_container_width=True,
+            key="account_save_profile_picture",
+            disabled=profile_upload is None
+        ):
+            if not profile_upload:
+                st.error("Please choose a profile picture first.")
+            else:
+                profile_image, profile_error = uploaded_profile_image_to_data_uri(profile_upload)
+
+                if profile_error:
+                    st.error(profile_error)
+                else:
+                    try:
+                        update_user_profile_image_safe(st.session_state.username, profile_image)
+                        add_user_activity_safe(
+                            st.session_state.username,
+                            "profile_picture_update",
+                            "Updated profile picture."
+                        )
+                        st.success("Profile picture updated.")
+                        st.rerun()
+                    except Exception:
+                        st.error("Could not update your profile picture.")
+
+    with profile_remove_col:
+        if st.button(
+            "Remove profile picture",
+            use_container_width=True,
+            key="account_remove_profile_picture",
+            disabled=not current_profile_image
+        ):
+            try:
+                update_user_profile_image_safe(st.session_state.username, None)
+                add_user_activity_safe(
+                    st.session_state.username,
+                    "profile_picture_remove",
+                    "Removed profile picture."
+                )
+                st.success("Profile picture removed.")
+                st.rerun()
+            except Exception:
+                st.error("Could not remove your profile picture.")
 
     if current_email:
         st.write(f"Verification email: **{current_email}**")
@@ -2042,6 +2164,7 @@ def get_admin_user_fields(user):
         "password": user[3] if len(user) > 3 else "",
         "social_provider": user[4] if len(user) > 4 else "",
         "social_sub": user[5] if len(user) > 5 else "",
+        "profile_image": user[6] if len(user) > 6 else "",
     }
 
 
@@ -2246,6 +2369,27 @@ with st.sidebar:
     welcome_name = st.session_state.display_name or st.session_state.username
     is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
     avatar_letter = (welcome_name.strip()[:1] or "U").upper()
+    sidebar_user = get_current_user_safe()
+    sidebar_profile_image = get_user_profile_image(sidebar_user)
+
+    if sidebar_profile_image:
+        st.markdown(
+            f"""
+            <style>
+            .st-key-profile_circle button {{
+                background-image: url({json.dumps(sidebar_profile_image)}) !important;
+                background-size: cover !important;
+                background-position: center !important;
+                color: transparent !important;
+            }}
+
+            .st-key-profile_circle button p {{
+                color: transparent !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
     profile_avatar_col, profile_name_col = st.columns([0.25, 0.75], vertical_alignment="center")
     with profile_avatar_col:

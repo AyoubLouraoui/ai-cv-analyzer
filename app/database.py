@@ -80,6 +80,7 @@ def init_db():
         add_column_if_missing("users", "password", "TEXT")
         add_column_if_missing("users", "social_provider", "TEXT")
         add_column_if_missing("users", "social_sub", "TEXT")
+        add_column_if_missing("users", "profile_image", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -119,6 +120,7 @@ def init_db():
         add_column_if_missing("users", "password", "TEXT")
         add_column_if_missing("users", "social_provider", "TEXT")
         add_column_if_missing("users", "social_sub", "TEXT")
+        add_column_if_missing("users", "profile_image", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -162,7 +164,7 @@ def get_user(username):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password, social_provider, social_sub FROM users WHERE username={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub, profile_image FROM users WHERE username={p}",
         (username,),
         fetch="one"
     )
@@ -172,7 +174,7 @@ def get_user_by_email(email):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password, social_provider, social_sub FROM users WHERE email={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub, profile_image FROM users WHERE email={p}",
         (email,),
         fetch="one"
     )
@@ -183,7 +185,7 @@ def get_user_by_social_identity(provider, social_sub):
 
     return execute(
         f"""
-        SELECT id, username, email, password, social_provider, social_sub
+        SELECT id, username, email, password, social_provider, social_sub, profile_image
         FROM users
         WHERE social_provider={p} AND social_sub={p}
         """,
@@ -216,10 +218,19 @@ def update_user_account_credentials(username, email, password=None):
         )
 
 
+def update_user_profile_image(username, profile_image):
+    p = placeholder()
+
+    execute(
+        f"UPDATE users SET profile_image={p} WHERE username={p}",
+        (profile_image, username)
+    )
+
+
 def get_all_users():
     return execute(
         """
-        SELECT id, username, email, password, social_provider, social_sub
+        SELECT id, username, email, password, social_provider, social_sub, profile_image
         FROM users
         ORDER BY id DESC
         """,
