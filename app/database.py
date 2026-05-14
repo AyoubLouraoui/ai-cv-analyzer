@@ -113,6 +113,9 @@ def init_db():
         )
         """)
 
+        add_column_if_missing("users", "email", "TEXT")
+        add_column_if_missing("users", "password", "TEXT")
+
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,7 +158,7 @@ def get_user(username):
     p = placeholder()
 
     return execute(
-        f"SELECT * FROM users WHERE username={p}",
+        f"SELECT id, username, email, password FROM users WHERE username={p}",
         (username,),
         fetch="one"
     )
@@ -165,7 +168,7 @@ def get_user_by_email(email):
     p = placeholder()
 
     return execute(
-        f"SELECT * FROM users WHERE email={p}",
+        f"SELECT id, username, email, password FROM users WHERE email={p}",
         (email,),
         fetch="one"
     )
