@@ -1456,14 +1456,16 @@ h3 {
 }
 
 .st-key-google_login button,
-.st-key-google_reg button {
+.st-key-google_reg button,
+.st-key-github_login button,
+.st-key-github_reg button,
+.st-key-fb_login button,
+.st-key-fb_reg button {
     min-height: 48px !important;
     font-size: 15px !important;
     color: #0f172a !important;
     background: #f8fafc !important;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
-    background-position: calc(50% - 96px) center !important;
     background-size: 20px 20px !important;
     border: 1px solid #d7dee8 !important;
     box-shadow: 0 1px 2px rgba(15,23,42,0.08) !important;
@@ -1475,27 +1477,61 @@ h3 {
     transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease !important;
 }
 
+.st-key-google_login button,
+.st-key-google_reg button {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 533.5 544.3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%234285f4' d='M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z'/%3E%3Cpath fill='%2334a853' d='M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z'/%3E%3Cpath fill='%23fbbc04' d='M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z'/%3E%3Cpath fill='%23ea4335' d='M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z'/%3E%3C/svg%3E") !important;
+    background-position: calc(50% - 96px) center !important;
+}
+
+.st-key-github_login button,
+.st-key-github_reg button {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23181717' d='M12 .5C5.73.5.65 5.58.65 11.85c0 5.02 3.26 9.28 7.78 10.78.57.11.78-.25.78-.55v-2.17c-3.17.69-3.84-1.36-3.84-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.24 3.32.95.1-.74.4-1.24.72-1.53-2.53-.29-5.19-1.27-5.19-5.64 0-1.25.45-2.26 1.18-3.06-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.14 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.81 1.18 3.06 0 4.38-2.67 5.34-5.21 5.63.41.36.77 1.06.77 2.14v3.17c0 .3.21.66.79.55 4.52-1.5 7.77-5.76 7.77-10.78C23.35 5.58 18.27.5 12 .5z'/%3E%3C/svg%3E") !important;
+    background-position: calc(50% - 95px) center !important;
+}
+
+.st-key-fb_login button,
+.st-key-fb_reg button {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle fill='%231877f2' cx='12' cy='12' r='12'/%3E%3Cpath fill='%23fff' d='M15.12 12.75l.38-2.49h-2.39V8.64c0-.68.33-1.34 1.4-1.34h1.09V5.18s-.99-.17-1.94-.17c-1.98 0-3.27 1.2-3.27 3.37v1.88H8.2v2.49h2.19v6.02h2.72v-6.02h2.01z'/%3E%3C/svg%3E") !important;
+    background-position: calc(50% - 104px) center !important;
+}
+
 .st-key-google_login button:hover,
-.st-key-google_reg button:hover {
+.st-key-google_reg button:hover,
+.st-key-github_login button:hover,
+.st-key-github_reg button:hover,
+.st-key-fb_login button:hover,
+.st-key-fb_reg button:hover {
     transform: translateY(-1px) !important;
     opacity: 0.96 !important;
     border-color: #b8c4d4 !important;
 }
 
 .st-key-google_login button::before,
-.st-key-google_reg button::before {
+.st-key-google_reg button::before,
+.st-key-github_login button::before,
+.st-key-github_reg button::before,
+.st-key-fb_login button::before,
+.st-key-fb_reg button::before {
     display: none !important;
 }
 
 .st-key-google_login button [data-testid="stMarkdownContainer"],
-.st-key-google_reg button [data-testid="stMarkdownContainer"] {
+.st-key-google_reg button [data-testid="stMarkdownContainer"],
+.st-key-github_login button [data-testid="stMarkdownContainer"],
+.st-key-github_reg button [data-testid="stMarkdownContainer"],
+.st-key-fb_login button [data-testid="stMarkdownContainer"],
+.st-key-fb_reg button [data-testid="stMarkdownContainer"] {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
 
 .st-key-google_login button p,
-.st-key-google_reg button p {
+.st-key-google_reg button p,
+.st-key-github_login button p,
+.st-key-github_reg button p,
+.st-key-fb_login button p,
+.st-key-fb_reg button p {
     color: #0f172a !important;
     font-size: 15px !important;
     font-weight: 500 !important;
@@ -1792,8 +1828,10 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Continue with Google", use_container_width=True, key="google_login"):
                 start_social_login("google")
-            render_direct_oauth_button("github", "Continue with GitHub")
-            render_direct_oauth_button("facebook", "Continue with Facebook")
+            if st.button("Continue with GitHub", help="Continue with GitHub", use_container_width=True, key="github_login"):
+                start_social_login("github")
+            if st.button("Continue with Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
+                start_social_login("facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1860,8 +1898,10 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                 start_social_login("google")
-            render_direct_oauth_button("github", "Continue with GitHub")
-            render_direct_oauth_button("facebook", "Continue with Facebook")
+            if st.button("Continue with GitHub", help="Create account with GitHub", use_container_width=True, key="github_reg"):
+                start_social_login("github")
+            if st.button("Continue with Facebook", help="Create account with Facebook", use_container_width=True, key="fb_reg"):
+                start_social_login("facebook")
 
     st.stop()
 
