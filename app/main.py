@@ -2377,9 +2377,8 @@ with st.sidebar:
             f"""
             <style>
             .st-key-profile_circle button {{
-                background-image: url({json.dumps(sidebar_profile_image)}) !important;
-                background-size: cover !important;
-                background-position: center !important;
+                background: url({json.dumps(sidebar_profile_image)}) center center / cover no-repeat !important;
+                background-color: transparent !important;
                 color: transparent !important;
             }}
 
