@@ -6,6 +6,7 @@ import re
 import json
 import html
 import base64
+import textwrap
 import secrets as py_secrets
 import requests
 from urllib.parse import urlencode, urlparse
@@ -2495,7 +2496,7 @@ def render_about_link(label, secret_name, default_url=""):
 
 def render_about_page():
     st.markdown(
-        """
+        textwrap.dedent("""
         <div class="app-hero">
             <div class="hero-kicker">ABOUT AI CV ANALYZER</div>
             <h1 class="hero-title">Built by Ayoub Louraoui to make smarter CVs accessible.</h1>
@@ -2510,7 +2511,7 @@ def render_about_page():
                 <div class="hero-pill">Practical career tools</div>
             </div>
         </div>
-        """,
+        """).strip(),
         unsafe_allow_html=True
     )
 
@@ -2520,7 +2521,7 @@ def render_about_page():
     instagram_link = render_about_link("Instagram", "INSTAGRAM_URL", "https://www.instagram.com/ayoublouraoui_/")
 
     st.markdown(
-        f"""
+        textwrap.dedent(f"""
         <div class="about-shell">
             <div class="about-panel">
                 <div class="about-kicker">The Story</div>
@@ -2580,7 +2581,7 @@ def render_about_page():
                 </div>
             </div>
         </div>
-        """,
+        """).strip(),
         unsafe_allow_html=True
     )
 
