@@ -2395,6 +2395,128 @@ def get_admin_account_type(user):
     return "Application"
 
 
+def admin_html(value):
+    return html.escape("" if value is None else str(value))
+
+
+def admin_pill(label, variant="slate"):
+    safe_label = admin_html(label)
+    safe_variant = admin_html(variant)
+    return f"<span class='admin-pill {safe_variant}'>{safe_label}</span>"
+
+
+def render_admin_table(title, subtitle, columns, rows):
+    table_head = "".join(f"<th>{admin_html(label)}</th>" for _, label in columns)
+
+    if rows:
+        table_rows = []
+
+        for row in rows:
+            cells = "".join(f"<td>{row.get(key, '')}</td>" for key, _ in columns)
+            table_rows.append(f"<tr>{cells}</tr>")
+
+        table_body = "".join(table_rows)
+    else:
+        table_body = (
+            f"<tr><td colspan='{len(columns)}' class='admin-muted'>No records found yet.</td></tr>"
+        )
+
+    st.markdown(
+        f"""
+        <div class="admin-table-card">
+            <div class="admin-table-head">
+                <div>
+                    <div class="admin-table-title">{admin_html(title)}</div>
+                    <div class="admin-table-subtitle">{admin_html(subtitle)}</div>
+                </div>
+                <div class="admin-table-count">{len(rows)}</div>
+            </div>
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead><tr>{table_head}</tr></thead>
+                    <tbody>{table_body}</tbody>
+                </table>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def render_admin_users_table(users):
+    rows = []
+
+    for user in users:
+        fields = get_admin_user_fields(user)
+        account_type = get_admin_account_type(user)
+        provider = (fields["social_provider"] or "").strip().lower()
+        account_variant = "blue" if provider == "google" else "green"
+
+        rows.append({
+            "id": f"<span class='admin-id'>#{admin_html(fields['id'])}</span>",
+            "username": f"<span class='admin-strong'>{admin_html(fields['username'])}</span>",
+            "email": f"<span class='admin-muted'>{admin_html(fields['email'] or 'No email')}</span>",
+            "type": admin_pill(account_type, account_variant),
+            "password": admin_pill("Created" if fields["password"] else "Missing", "green" if fields["password"] else "amber"),
+            "google": admin_pill("Linked" if provider == "google" else "Not linked", "blue" if provider == "google" else "slate"),
+        })
+
+    render_admin_table(
+        "Users",
+        "Accounts registered in your AI CV Analyzer workspace.",
+        [
+            ("id", "ID"),
+            ("username", "Username"),
+            ("email", "Email"),
+            ("type", "Account Type"),
+            ("password", "Password"),
+            ("google", "Google"),
+        ],
+        rows
+    )
+
+
+def get_activity_variant(action):
+    action_text = (action or "").lower()
+
+    if "delete" in action_text or "remove" in action_text:
+        return "red"
+    if "reset" in action_text or "password" in action_text or "update" in action_text:
+        return "amber"
+    if "login" in action_text:
+        return "blue"
+    if "register" in action_text or "upload" in action_text or "created" in action_text:
+        return "green"
+
+    return "slate"
+
+
+def render_admin_activity_table(activities):
+    rows = []
+
+    for activity in activities:
+        rows.append({
+            "id": f"<span class='admin-id'>#{admin_html(activity[0])}</span>",
+            "username": f"<span class='admin-strong'>{admin_html(activity[1])}</span>",
+            "action": admin_pill(activity[2], get_activity_variant(activity[2])),
+            "details": f"<div class='admin-details-cell'>{admin_html(activity[3])}</div>",
+            "created_at": f"<span class='admin-muted'>{admin_html(activity[4])}</span>",
+        })
+
+    render_admin_table(
+        "User Activity",
+        "Latest actions tracked across accounts, CV uploads, and security changes.",
+        [
+            ("id", "ID"),
+            ("username", "Username"),
+            ("action", "Action"),
+            ("details", "Details"),
+            ("created_at", "Created At"),
+        ],
+        rows
+    )
+
+
 def clear_forgot_password_state(keep_open=False):
     st.session_state.forgot_password_open = keep_open
     st.session_state.forgot_password_code = ""
@@ -2860,26 +2982,10 @@ if admin_page == "Admin Dashboard":
     c2.metric("CV Uploads", len(uploads))
     c3.metric("Activities", len(activities))
 
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Users</div>", unsafe_allow_html=True)
-
     if users:
-        users_view = []
+        render_admin_users_table(users)
 
-        for user in users:
-            fields = get_admin_user_fields(user)
-            users_view.append({
-                "ID": fields["id"],
-                "Username": fields["username"],
-                "Email": fields["email"],
-                "Account Type": get_admin_account_type(user),
-                "Has Password": "Yes" if fields["password"] else "No",
-                "Google Linked": "Yes" if fields["social_provider"] == "google" else "No",
-            })
-
-        st.dataframe(pd.DataFrame(users_view), use_container_width=True, hide_index=True)
-
-        st.write("### Manage User")
+        st.markdown("<div class='admin-manage-title'>Manage User</div>", unsafe_allow_html=True)
 
         user_options = {
             f"{user[1]} ({user[2]})": user
@@ -3057,9 +3163,7 @@ if admin_page == "Admin Dashboard":
                     st.session_state.confirm_delete_user_id = None
                     st.rerun()
     else:
-        st.info("No users found.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+        render_admin_users_table([])
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>CV Uploads</div>", unsafe_allow_html=True)
@@ -3134,19 +3238,7 @@ if admin_page == "Admin Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>User Activity</div>", unsafe_allow_html=True)
-
-    if activities:
-        activities_df = pd.DataFrame(
-            activities,
-            columns=["ID", "Username", "Action", "Details", "Created At"]
-        )
-        st.dataframe(activities_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("No user activity found yet.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_admin_activity_table(activities)
 
     st.stop()
 
