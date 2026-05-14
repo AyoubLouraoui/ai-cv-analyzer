@@ -1747,6 +1747,8 @@ h3 {
 }
 
 .st-key-profile_circle button {
+    position: relative !important;
+    overflow: hidden !important;
     width: 58px !important;
     height: 58px !important;
     min-height: 58px !important;
@@ -2377,13 +2379,25 @@ with st.sidebar:
             f"""
             <style>
             .st-key-profile_circle button {{
-                background: url({json.dumps(sidebar_profile_image)}) center center / cover no-repeat !important;
+                background: transparent !important;
                 background-color: transparent !important;
                 color: transparent !important;
             }}
 
+            .st-key-profile_circle button::before {{
+                content: "" !important;
+                position: absolute !important;
+                inset: 0 !important;
+                border-radius: 50% !important;
+                background: url({json.dumps(sidebar_profile_image)}) center center / cover no-repeat !important;
+                z-index: 0 !important;
+            }}
+
             .st-key-profile_circle button p {{
                 color: transparent !important;
+                opacity: 0 !important;
+                position: relative !important;
+                z-index: 1 !important;
             }}
             </style>
             """,
