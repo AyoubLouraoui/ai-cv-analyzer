@@ -1855,8 +1855,7 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Continue with Google", use_container_width=True, key="google_login"):
                 start_social_login("google")
-            if st.button("Continue with Facebook", help="Continue with Facebook", use_container_width=True, key="fb_login"):
-                start_social_login("facebook")
+            render_direct_oauth_button("facebook", "Continue with Facebook")
 
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
@@ -1923,8 +1922,7 @@ if not st.session_state.logged_in:
 
             if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                 start_social_login("google")
-            if st.button("Continue with Facebook", help="Create account with Facebook", use_container_width=True, key="fb_reg"):
-                start_social_login("facebook")
+            render_direct_oauth_button("facebook", "Continue with Facebook")
 
     st.stop()
 
