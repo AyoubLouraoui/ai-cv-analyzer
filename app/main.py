@@ -2520,6 +2520,76 @@ def render_about_page():
     linkedin_link = render_about_link("LinkedIn", "LINKEDIN_URL", "https://www.linkedin.com/in/ayoub-louraoui-91111628a/")
     instagram_link = render_about_link("Instagram", "INSTAGRAM_URL", "https://www.instagram.com/ayoublouraoui_/")
 
+    story_html = textwrap.dedent("""
+    <div class="about-panel">
+        <div class="about-kicker">The Story</div>
+        <h2>Hi, I'm Ayoub Louraoui.</h2>
+        <p>
+            I'm an AI and Data enthusiast passionate about building smart and useful
+            digital solutions.
+        </p>
+        <p>
+            AI CV Analyzer was created from a simple observation: many talented people
+            struggle to get interviews not because they lack skills, but because their CVs
+            are not optimized for modern recruitment systems.
+        </p>
+        <p>
+            As someone interested in Artificial Intelligence and data-driven technologies,
+            I wanted to build a project that solves a real problem while also reflecting my
+            passion for AI and web development.
+        </p>
+        <p>That's how AI CV Analyzer was born.</p>
+        <p>
+            This platform uses Artificial Intelligence to analyze resumes, detect strengths
+            and weaknesses, identify important keywords, and provide smart suggestions to
+            help users improve their CVs and become more ATS-friendly.
+        </p>
+        <p>
+            More than just a project, AI CV Analyzer represents my journey of learning,
+            building, and turning ideas into practical tools that can help people in real life.
+        </p>
+        <p>
+            My goal is to create technology that is simple, useful, and accessible to everyone.
+        </p>
+        <div class="about-signature">Thank you for visiting and supporting the project.</div>
+    </div>
+    """).strip()
+    links_html = textwrap.dedent(f"""
+    <div class="about-panel">
+        <div class="about-kicker">Features</div>
+        <h2>What It Helps With</h2>
+        <div class="about-feature-grid">
+            <div class="about-feature">AI-powered CV analysis</div>
+            <div class="about-feature">ATS compatibility checking</div>
+            <div class="about-feature">Keyword and skill detection</div>
+            <div class="about-feature">Personalized suggestions</div>
+            <div class="about-feature">Simple and fast user experience</div>
+        </div>
+        <div style="height: 22px;"></div>
+        <div class="about-kicker">Connect With Me</div>
+        <h2>Find My Work</h2>
+        <div class="about-links">
+            {portfolio_link}
+            {github_link}
+            {linkedin_link}
+            {instagram_link}
+        </div>
+        <div class="about-signature">
+            Links point to my portfolio, GitHub, LinkedIn, and Instagram profiles.
+        </div>
+    </div>
+    """).strip()
+
+    about_story_col, about_links_col = st.columns([1.25, 0.75], gap="large")
+
+    with about_story_col:
+        st.html(story_html)
+
+    with about_links_col:
+        st.html(links_html)
+
+    return
+
     st.markdown(
         textwrap.dedent(f"""
         <div class="about-shell">
