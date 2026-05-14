@@ -2297,17 +2297,17 @@ if admin_page == "Admin Dashboard":
         edit_username = st.text_input(
             "Username",
             value=selected_fields["username"],
-            key="admin_edit_username"
+            key=f"admin_edit_username_{selected_fields['id']}"
         )
         edit_email = st.text_input(
             "Email",
             value=selected_fields["email"] or "",
-            key="admin_edit_email"
+            key=f"admin_edit_email_{selected_fields['id']}"
         )
         reset_password = st.text_input(
             "Reset password",
             type="password",
-            key="admin_reset_password",
+            key=f"admin_reset_password_{selected_fields['id']}",
             placeholder="Enter a new password for this user"
         )
 
