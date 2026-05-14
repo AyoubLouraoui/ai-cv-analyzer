@@ -2499,7 +2499,7 @@ def render_about_page():
         textwrap.dedent("""
         <div class="app-hero">
             <div class="hero-kicker">ABOUT AI CV ANALYZER</div>
-            <h1 class="hero-title">Built by Ayoub Louraoui to make smarter CVs accessible.</h1>
+            <h1 class="hero-title">Built to make smarter CVs accessible.</h1>
             <p class="hero-copy">
                 A practical AI project created to help talented people improve their resumes,
                 understand ATS systems, and get closer to real interview opportunities.
