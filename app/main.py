@@ -125,16 +125,38 @@ def is_social_login_active():
         return False
 
 
+def clean_account_name(value):
+    value = (value or "").strip()
+
+    if not value:
+        return ""
+
+    first_name = value.split()[0]
+    return re.sub(r"[^A-Za-z0-9_]", "_", first_name.lower()).strip("_")
+
+
 def make_social_username(email, name):
-    base = email.split("@")[0] if email else name
-    base = re.sub(r"[^A-Za-z0-9_]", "_", base.lower()).strip("_")
+    base = clean_account_name(name)
+
+    if not base and email:
+        base = clean_account_name(email.split("@")[0])
 
     return base or "social_user"
 
 
+def make_social_display_name(username):
+    name = (
+        get_social_user_value("given_name", "")
+        or get_social_user_value("name", "")
+        or username
+    )
+
+    return (name or username).strip().split()[0]
+
+
 def ensure_social_user():
     email = get_social_user_value("email", "")
-    name = get_social_user_value("name", "") or get_social_user_value("given_name", "")
+    name = get_social_user_value("given_name", "") or get_social_user_value("name", "")
 
     if not email:
         email = f"{get_social_user_value('sub', py_secrets.token_hex(8))}@social.local"
@@ -195,6 +217,7 @@ def complete_social_login():
     username = ensure_social_user()
     st.session_state.logged_in = True
     st.session_state.username = username
+    st.session_state.display_name = make_social_display_name(username)
     st.session_state.is_admin = is_admin_user(username)
     st.session_state.auth_message = ""
     add_user_activity_safe(username, "social_login", "User logged in with social provider")
@@ -1662,6 +1685,9 @@ if "logged_in" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
+if "display_name" not in st.session_state:
+    st.session_state.display_name = ""
+
 if "auth_message" not in st.session_state:
     st.session_state.auth_message = ""
 
@@ -1803,6 +1829,7 @@ if not st.session_state.logged_in:
                 if login_user(login_username, login_password) or is_admin_login(login_username, login_password):
                     st.session_state.logged_in = True
                     st.session_state.username = login_username
+                    st.session_state.display_name = login_username
                     st.session_state.is_admin = is_admin_user(login_username)
                     st.session_state.auth_message = ""
                     add_user_activity_safe(login_username, "login", "User logged in")
@@ -1862,6 +1889,7 @@ if not st.session_state.logged_in:
                         register_user(new_username, new_email, new_password)
                         st.session_state.logged_in = True
                         st.session_state.username = new_username
+                        st.session_state.display_name = new_username
                         st.session_state.is_admin = is_admin_user(new_username)
                         st.session_state.auth_message = ""
                         st.session_state.verification_code = ""
@@ -1900,12 +1928,14 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
-    st.success(f"👋 Welcome, {st.session_state.username}")
+    welcome_name = st.session_state.display_name or st.session_state.username
+    st.success(f"👋 Welcome, {welcome_name}")
 
     if st.button("🚪 Logout", use_container_width=True):
         add_user_activity_safe(st.session_state.username, "logout", "User logged out")
         st.session_state.logged_in = False
         st.session_state.username = ""
+        st.session_state.display_name = ""
         st.session_state.is_admin = False
         st.session_state.auth_message = ""
         if is_social_login_active():
