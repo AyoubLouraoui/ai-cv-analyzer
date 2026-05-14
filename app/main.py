@@ -2274,13 +2274,11 @@ with st.sidebar:
     if st.session_state.profile_menu_open:
         st.markdown("<div class='profile-menu-title'>Account menu</div>", unsafe_allow_html=True)
 
-        if st.button("Dashboard", use_container_width=True, key="profile_menu_dashboard"):
-            if is_admin:
+        if is_admin:
+            if st.button("Dashboard", use_container_width=True, key="profile_menu_dashboard"):
                 st.session_state.admin_page = "Admin Dashboard"
-            else:
-                st.session_state.user_page = "CV Analyzer"
-            st.session_state.profile_menu_open = False
-            st.rerun()
+                st.session_state.profile_menu_open = False
+                st.rerun()
 
         if st.button("CV Analyzer", use_container_width=True, key="profile_menu_cv"):
             if is_admin:
