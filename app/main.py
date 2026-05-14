@@ -1815,7 +1815,7 @@ if not st.session_state.logged_in:
                 unsafe_allow_html=True
             )
 
-            if st.button("Google", help="Continue with Google", use_container_width=True, key="google_login"):
+            if st.button("Continue with Google", help="Continue with Google", use_container_width=True, key="google_login"):
                 start_social_login("google")
 
         with register_tab:
@@ -1881,7 +1881,7 @@ if not st.session_state.logged_in:
                 "Google, GitHub, or Facebook will create your account automatically and redirect you to your dashboard."
             )
 
-            if st.button("Sign up Google", help="Create account with Google", use_container_width=True, key="google_reg"):
+            if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                 start_social_login("google")
 
     st.stop()
