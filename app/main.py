@@ -2319,6 +2319,7 @@ def render_account_settings():
     stored_email = str(user[2] or "").strip().lower()
     is_google_account = is_social_login_active()
     current_profile_image = get_user_profile_image(user)
+    had_platform_password_before = bool(user[3])
     has_created_password = bool(user[3]) and bool(user[7]) if len(user) > 7 else bool(user[3])
 
     st.markdown(
@@ -2498,12 +2499,12 @@ def render_account_settings():
                     st.session_state.account_verification_code = ""
                     st.session_state.account_verification_email = ""
                     st.session_state.account_verified = False
-                    if password_changed and not has_created_password:
+                    if password_changed and not had_platform_password_before:
                         activity_action = "password_create"
                         activity_details = "Created platform password after email verification."
                     elif password_changed:
-                        activity_action = "password_update"
-                        activity_details = "Updated platform password after email verification."
+                        activity_action = "password_changed"
+                        activity_details = "Changed platform password after email verification."
                     elif email_changed:
                         activity_action = "email_update"
                         activity_details = "Updated account email after email verification."
@@ -2826,7 +2827,7 @@ def get_activity_variant(action):
 
     if "delete" in action_text or "remove" in action_text:
         return "red"
-    if "reset" in action_text or "password" in action_text or "update" in action_text:
+    if "reset" in action_text or "password" in action_text or "update" in action_text or "changed" in action_text:
         return "amber"
     if "login" in action_text:
         return "blue"
@@ -2834,6 +2835,15 @@ def get_activity_variant(action):
         return "green"
 
     return "slate"
+
+
+def format_activity_action(action):
+    action_text = str(action or "").strip()
+
+    if action_text.lower() == "password_update":
+        return "password_changed"
+
+    return action_text
 
 
 def render_admin_activity_table(activities, username_filter=None):
@@ -2844,10 +2854,11 @@ def render_admin_activity_table(activities, username_filter=None):
         subtitle = f"Latest actions for {username_filter}."
 
     for activity in activities:
+        action_label = format_activity_action(activity[2])
         rows.append({
             "id": f"<span class='admin-id'>#{admin_html(activity[0])}</span>",
             "username": f"<span class='admin-strong'>{admin_html(activity[1])}</span>",
-            "action": admin_pill(activity[2], get_activity_variant(activity[2])),
+            "action": admin_pill(action_label, get_activity_variant(action_label)),
             "details": f"<div class='admin-details-cell'>{admin_html(activity[3])}</div>",
             "created_at": f"<span class='admin-muted'>{admin_html(activity[4])}</span>",
         })
@@ -2869,6 +2880,7 @@ def render_admin_activity_table(activities, username_filter=None):
 def has_password_activity(activities):
     password_actions = {
         "password_create",
+        "password_changed",
         "password_update",
         "password_reset",
     }
@@ -3488,6 +3500,11 @@ if admin_page == "Admin Dashboard":
                     else:
                         try:
                             update_user_password_safe(selected_fields["id"], reset_password)
+                            add_user_activity_safe(
+                                selected_fields["username"],
+                                "password_changed" if selected_has_created_password else "password_create",
+                                "Admin changed this user's platform password."
+                            )
                             st.session_state.confirm_reset_password_user_id = None
                             st.success("Password reset successfully.")
                             st.rerun()

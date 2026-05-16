@@ -347,7 +347,7 @@ def get_all_user_activity():
         """
         SELECT id, username, action, details, created_at
         FROM user_activity
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, id DESC
         """,
         fetch="all"
     )
