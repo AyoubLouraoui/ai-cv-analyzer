@@ -164,6 +164,18 @@ def get_secret(name, default=None):
         return default
 
 
+def set_flash_success(message):
+    st.session_state.flash_success = message
+
+
+def show_flash_success():
+    message = st.session_state.get("flash_success", "")
+
+    if message:
+        st.success(message)
+        st.session_state.flash_success = ""
+
+
 def is_admin_login(username, password):
     admin_username = get_secret("ADMIN_USERNAME", "admin")
     admin_password = get_secret("ADMIN_PASSWORD", "abc123")
@@ -340,6 +352,7 @@ def complete_social_login():
     st.session_state.display_name = make_social_display_name(username)
     st.session_state.is_admin = is_admin_user(username)
     st.session_state.auth_message = ""
+    set_flash_success(f"Welcome {st.session_state.display_name}. Login successful.")
     add_user_activity_safe(username, "social_login", "User logged in with social provider")
     st.rerun()
 
@@ -718,6 +731,7 @@ def complete_direct_oauth(provider, code, redirect_uri=None):
         st.session_state.username = username
         st.session_state.is_admin = is_admin_user(username)
         st.session_state.auth_message = ""
+        set_flash_success(f"Welcome {username}. Login successful.")
         add_user_activity_safe(username, "social_login", f"User logged in with {provider}")
         if "oauth_states" in st.session_state:
             st.session_state.oauth_states.pop(provider, None)
@@ -2266,6 +2280,11 @@ if "forgot_password_user_id" not in st.session_state:
 if "forgot_password_username" not in st.session_state:
     st.session_state.forgot_password_username = ""
 
+if "flash_success" not in st.session_state:
+    st.session_state.flash_success = ""
+
+show_flash_success()
+
 
 if not st.session_state.logged_in and is_social_login_active():
     complete_social_login()
@@ -2383,7 +2402,7 @@ def render_account_settings():
                             "profile_picture_update",
                             "Updated profile picture."
                         )
-                        st.success("Profile picture updated.")
+                        set_flash_success("Profile picture updated successfully.")
                         st.rerun()
                     except Exception:
                         st.error("Could not update your profile picture.")
@@ -2402,7 +2421,7 @@ def render_account_settings():
                     "profile_picture_remove",
                     "Removed profile picture."
                 )
-                st.success("Profile picture removed.")
+                set_flash_success("Profile picture removed successfully.")
                 st.rerun()
             except Exception:
                 st.error("Could not remove your profile picture.")
@@ -2517,7 +2536,7 @@ def render_account_settings():
                         activity_action,
                         activity_details
                     )
-                    st.success("Account updated successfully.")
+                    set_flash_success("Account updated successfully.")
                     st.rerun()
                 except Exception:
                     st.error("Could not update your account. Please try again.")
@@ -3002,6 +3021,7 @@ def render_forgot_password_panel():
                     st.session_state.display_name = username
                     st.session_state.is_admin = is_admin_user(username)
                     st.session_state.auth_message = ""
+                    set_flash_success("Password reset successfully. Welcome back.")
                     st.rerun()
                 except Exception:
                     st.error("Could not reset your password. Please try again.")
@@ -3098,6 +3118,7 @@ if not st.session_state.logged_in:
                     st.session_state.is_admin = is_admin_user(login_username)
                     st.session_state.auth_message = ""
                     add_user_activity_safe(login_username, "login", "User logged in")
+                    set_flash_success(f"Welcome {login_username}. Login successful.")
                     st.rerun()
                 else:
                     st.error("❌ Invalid username or password")
@@ -3170,6 +3191,7 @@ if not st.session_state.logged_in:
                         st.session_state.verification_email = ""
                         st.session_state.email_verified = False
                         add_user_activity_safe(new_username, "register", "Account created")
+                        set_flash_success(f"Account created successfully. Welcome {new_username}.")
                         st.rerun()
                     except Exception:
                         st.error("❌ Username or email already exists")
@@ -3297,6 +3319,7 @@ with st.sidebar:
             st.rerun()
 
         if st.button("Logout", use_container_width=True, key="profile_menu_logout"):
+            logout_name = st.session_state.display_name or st.session_state.username
             add_user_activity_safe(st.session_state.username, "logout", "User logged out")
             st.session_state.logged_in = False
             st.session_state.username = ""
@@ -3304,6 +3327,7 @@ with st.sidebar:
             st.session_state.is_admin = False
             st.session_state.auth_message = ""
             st.session_state.profile_menu_open = False
+            set_flash_success(f"{logout_name} logged out successfully.")
             if is_social_login_active():
                 st.logout()
             st.rerun()
@@ -3479,7 +3503,7 @@ if admin_page == "Admin Dashboard":
                                 st.session_state.username = edit_username
                                 st.session_state.display_name = edit_username
                             st.session_state.confirm_update_user_id = None
-                            st.success("User updated successfully.")
+                            set_flash_success("User updated successfully.")
                             st.rerun()
                         except Exception:
                             st.error("Could not update user. Username or email may already exist.")
@@ -3506,7 +3530,7 @@ if admin_page == "Admin Dashboard":
                                 "Admin changed this user's platform password."
                             )
                             st.session_state.confirm_reset_password_user_id = None
-                            st.success("Password reset successfully.")
+                            set_flash_success("Password changed successfully.")
                             st.rerun()
                         except Exception:
                             st.error("Could not reset password.")
@@ -3527,7 +3551,7 @@ if admin_page == "Admin Dashboard":
                     try:
                         clear_user_social_identity_safe(selected_fields["id"])
                         st.session_state.confirm_unlink_social_user_id = None
-                        st.success("Google login unlinked successfully.")
+                        set_flash_success("Google login unlinked successfully.")
                         st.rerun()
                     except Exception:
                         st.error("Could not unlink Google login.")
@@ -3551,7 +3575,7 @@ if admin_page == "Admin Dashboard":
                         try:
                             delete_user_safe(selected_fields["id"])
                             st.session_state.confirm_delete_user_id = None
-                            st.success("User deleted successfully.")
+                            set_flash_success("User deleted successfully.")
                             st.rerun()
                         except Exception:
                             st.error("Could not delete user.")
@@ -3832,6 +3856,7 @@ if uploaded_file is not None:
                 )
 
             st.session_state.saved_upload_key = upload_key
+            st.success("CV uploaded and analysis saved successfully.")
 
 
     # =======================
