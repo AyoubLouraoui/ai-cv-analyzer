@@ -2821,8 +2821,12 @@ def get_activity_variant(action):
     return "slate"
 
 
-def render_admin_activity_table(activities):
+def render_admin_activity_table(activities, username_filter=None):
     rows = []
+    subtitle = "Latest actions tracked across accounts, CV uploads, and security changes."
+
+    if username_filter:
+        subtitle = f"Latest actions for {username_filter}."
 
     for activity in activities:
         rows.append({
@@ -2835,7 +2839,7 @@ def render_admin_activity_table(activities):
 
     render_admin_table(
         "User Activity",
-        "Latest actions tracked across accounts, CV uploads, and security changes.",
+        subtitle,
         [
             ("id", "ID"),
             ("username", "Username"),
@@ -3322,6 +3326,7 @@ if admin_page == "Admin Dashboard":
     users = get_all_users_safe()
     uploads = get_all_cv_uploads_safe()
     activities = get_all_user_activity_safe()
+    selected_activity_username = None
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Users", len(users))
@@ -3345,6 +3350,7 @@ if admin_page == "Admin Dashboard":
         selected_user = user_options[selected_label]
         selected_fields = get_admin_user_fields(selected_user)
         selected_account_type = get_admin_account_type(selected_user)
+        selected_activity_username = selected_fields["username"]
 
         st.write("#### User Details")
         detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
@@ -3584,7 +3590,12 @@ if admin_page == "Admin Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    render_admin_activity_table(activities)
+    selected_user_activities = [
+        activity
+        for activity in activities
+        if selected_activity_username and activity[1] == selected_activity_username
+    ]
+    render_admin_activity_table(selected_user_activities, selected_activity_username)
 
     render_footer()
     st.stop()
