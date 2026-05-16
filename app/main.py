@@ -176,11 +176,66 @@ def show_flash_success():
         st.session_state.flash_success = ""
 
 
+def clear_login_session(message=""):
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.session_state.display_name = ""
+    st.session_state.is_admin = False
+    st.session_state.auth_message = ""
+    st.session_state.profile_menu_open = False
+
+    if message:
+        set_flash_success(message)
+
+
+def enforce_active_account_session():
+    if not st.session_state.get("logged_in"):
+        return
+
+    username = str(st.session_state.get("username", "") or "").strip()
+
+    if not username:
+        clear_login_session("Your session was closed. Please sign in again.")
+        st.rerun()
+
+    user = get_current_user_safe()
+
+    if user:
+        return
+
+    if is_secret_admin_username(username):
+        return
+
+    clear_login_session("Your account was removed by an administrator. Your session has been closed.")
+
+    if is_social_login_active():
+        try:
+            st.logout()
+        except Exception:
+            pass
+
+    st.rerun()
+
+
+if hasattr(st, "fragment"):
+    @st.fragment(run_every="10s")
+    def render_session_guard():
+        enforce_active_account_session()
+else:
+    def render_session_guard():
+        enforce_active_account_session()
+
+
 def is_admin_login(username, password):
     admin_username = get_secret("ADMIN_USERNAME", "admin")
     admin_password = get_secret("ADMIN_PASSWORD", "abc123")
 
     return username == admin_username and password == admin_password
+
+
+def is_secret_admin_username(username):
+    admin_username = str(get_secret("ADMIN_USERNAME", "admin") or "").strip().lower()
+    return bool(admin_username) and str(username or "").strip().lower() == admin_username
 
 
 def is_admin_user(username):
@@ -2314,6 +2369,8 @@ if not st.session_state.logged_in and "code" in st.query_params:
         complete_direct_oauth(callback_provider, st.query_params.get("code"), callback_redirect_uri)
         st.stop()
 
+enforce_active_account_session()
+
 
 def get_current_account_email(user):
     google_email = get_social_user_value("email", "") if is_social_login_active() else ""
@@ -3210,6 +3267,8 @@ if not st.session_state.logged_in:
 
     render_footer()
     st.stop()
+
+render_session_guard()
 
 # =======================
 # SIDEBAR
