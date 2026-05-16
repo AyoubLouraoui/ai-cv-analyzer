@@ -82,6 +82,7 @@ def init_db():
         add_column_if_missing("users", "social_sub", "TEXT")
         add_column_if_missing("users", "profile_image", "TEXT")
         add_column_if_missing("users", "password_created", "INTEGER")
+        add_column_if_missing("users", "password_created_at", "TIMESTAMP")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -123,6 +124,7 @@ def init_db():
         add_column_if_missing("users", "social_sub", "TEXT")
         add_column_if_missing("users", "profile_image", "TEXT")
         add_column_if_missing("users", "password_created", "INTEGER")
+        add_column_if_missing("users", "password_created_at", "TEXT")
 
         execute("""
         CREATE TABLE IF NOT EXISTS cv_uploads (
@@ -176,9 +178,10 @@ backfill_password_created()
 def add_user(username, email, password):
     p = placeholder()
     password_created = 1 if password else 0
+    password_created_at = "CURRENT_TIMESTAMP" if password else "NULL"
 
     execute(
-        f"INSERT INTO users (username, email, password, password_created) VALUES ({p}, {p}, {p}, {p})",
+        f"INSERT INTO users (username, email, password, password_created, password_created_at) VALUES ({p}, {p}, {p}, {p}, {password_created_at})",
         (username, email, password, password_created)
     )
 
@@ -187,7 +190,7 @@ def get_user(username):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created FROM users WHERE username={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created, password_created_at FROM users WHERE username={p}",
         (username,),
         fetch="one"
     )
@@ -197,7 +200,7 @@ def get_user_by_email(email):
     p = placeholder()
 
     return execute(
-        f"SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created FROM users WHERE email={p}",
+        f"SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created, password_created_at FROM users WHERE email={p}",
         (email,),
         fetch="one"
     )
@@ -208,7 +211,7 @@ def get_user_by_social_identity(provider, social_sub):
 
     return execute(
         f"""
-        SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created
+        SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created, password_created_at
         FROM users
         WHERE social_provider={p} AND social_sub={p}
         """,
@@ -236,7 +239,7 @@ def update_user_account_credentials(username, email, password=None):
         )
     else:
         execute(
-            f"UPDATE users SET email={p}, password={p}, password_created=1 WHERE username={p}",
+            f"UPDATE users SET email={p}, password={p}, password_created=1, password_created_at=CURRENT_TIMESTAMP WHERE username={p}",
             (email, password, username)
         )
 
@@ -253,7 +256,7 @@ def update_user_profile_image(username, profile_image):
 def get_all_users():
     return execute(
         """
-        SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created
+        SELECT id, username, email, password, social_provider, social_sub, profile_image, password_created, password_created_at
         FROM users
         ORDER BY id DESC
         """,
@@ -274,7 +277,7 @@ def update_user_password(user_id, password):
     p = placeholder()
 
     execute(
-        f"UPDATE users SET password={p}, password_created=1 WHERE id={p}",
+        f"UPDATE users SET password={p}, password_created=1, password_created_at=CURRENT_TIMESTAMP WHERE id={p}",
         (password, user_id)
     )
 

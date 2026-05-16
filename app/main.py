@@ -2723,6 +2723,7 @@ def get_admin_user_fields(user):
         "social_sub": user[5] if len(user) > 5 else "",
         "profile_image": user[6] if len(user) > 6 else "",
         "password_created": bool(user[7]) if len(user) > 7 and user[7] is not None else bool((user[3] if len(user) > 3 else "") and not (user[4] if len(user) > 4 else "")),
+        "password_created_at": user[8] if len(user) > 8 else "",
     }
 
 
@@ -3639,7 +3640,7 @@ if admin_page == "Admin Dashboard":
                 selected_activity_username,
                 "password_create",
                 "Platform password is created for this Google-linked account.",
-                "Current status"
+                selected_fields["password_created_at"] or "Not recorded"
             )
         )
 
