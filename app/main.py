@@ -2341,6 +2341,9 @@ if "flash_success" not in st.session_state:
 if "last_deleted_username" not in st.session_state:
     st.session_state.last_deleted_username = ""
 
+if "show_deleted_activity_once" not in st.session_state:
+    st.session_state.show_deleted_activity_once = False
+
 show_flash_success()
 
 
@@ -3667,6 +3670,7 @@ if admin_page == "Admin Dashboard":
                             )
                             delete_user_safe(selected_fields["id"])
                             st.session_state.last_deleted_username = deleted_username
+                            st.session_state.show_deleted_activity_once = True
                             st.session_state.confirm_delete_user_id = None
                             set_flash_success("User deleted successfully.")
                             st.rerun()
@@ -3759,14 +3763,17 @@ if admin_page == "Admin Dashboard":
         for user in users
     }
     activity_filter_username = selected_activity_username
-    showing_deleted_user_activity = False
+    showing_deleted_user_activity = bool(
+        last_deleted_username
+        and st.session_state.get("show_deleted_activity_once", False)
+        and last_deleted_username.strip().lower() not in existing_usernames
+    )
 
-    if last_deleted_username:
-        if last_deleted_username.strip().lower() not in existing_usernames:
-            activity_filter_username = last_deleted_username
-            showing_deleted_user_activity = True
-        else:
-            st.session_state.last_deleted_username = ""
+    if showing_deleted_user_activity:
+        activity_filter_username = last_deleted_username
+    elif last_deleted_username and last_deleted_username.strip().lower() in existing_usernames:
+        st.session_state.last_deleted_username = ""
+        st.session_state.show_deleted_activity_once = False
 
     selected_user_activities = [
         activity
@@ -3796,9 +3803,11 @@ if admin_page == "Admin Dashboard":
 
     if showing_deleted_user_activity:
         st.info(f"Showing activity for deleted user '{activity_filter_username}'.")
+        st.session_state.show_deleted_activity_once = False
 
         if st.button("Back to selected user activity", use_container_width=True, key="clear_deleted_user_activity"):
             st.session_state.last_deleted_username = ""
+            st.session_state.show_deleted_activity_once = False
             st.rerun()
 
     activity_table_label = (
