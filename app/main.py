@@ -2338,6 +2338,9 @@ if "forgot_password_username" not in st.session_state:
 if "flash_success" not in st.session_state:
     st.session_state.flash_success = ""
 
+if "last_deleted_username" not in st.session_state:
+    st.session_state.last_deleted_username = ""
+
 show_flash_success()
 
 
@@ -3649,7 +3652,21 @@ if admin_page == "Admin Dashboard":
                         st.error("You cannot delete the account you are currently using.")
                     else:
                         try:
+                            deleted_username = selected_fields["username"]
+                            deleted_email = selected_fields["email"] or "No email"
+                            admin_username = st.session_state.username
+                            add_user_activity_safe(
+                                deleted_username,
+                                "user_removed",
+                                f"Account removed by admin {admin_username}. Email: {deleted_email}."
+                            )
+                            add_user_activity_safe(
+                                admin_username,
+                                "user_removed",
+                                f"Removed user {deleted_username} ({deleted_email})."
+                            )
                             delete_user_safe(selected_fields["id"])
+                            st.session_state.last_deleted_username = deleted_username
                             st.session_state.confirm_delete_user_id = None
                             set_flash_success("User deleted successfully.")
                             st.rerun()
@@ -3736,15 +3753,31 @@ if admin_page == "Admin Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    last_deleted_username = str(st.session_state.get("last_deleted_username", "") or "").strip()
+    existing_usernames = {
+        str(user[1] or "").strip().lower()
+        for user in users
+    }
+    activity_filter_username = selected_activity_username
+    showing_deleted_user_activity = False
+
+    if last_deleted_username:
+        if last_deleted_username.strip().lower() not in existing_usernames:
+            activity_filter_username = last_deleted_username
+            showing_deleted_user_activity = True
+        else:
+            st.session_state.last_deleted_username = ""
+
     selected_user_activities = [
         activity
         for activity in activities
-        if selected_activity_username
-        and str(activity[1] or "").strip().lower() == selected_activity_username.strip().lower()
+        if activity_filter_username
+        and str(activity[1] or "").strip().lower() == activity_filter_username.strip().lower()
     ]
 
     if (
-        selected_activity_username
+        activity_filter_username
+        and not showing_deleted_user_activity
         and users
         and selected_fields["social_provider"] == "google"
         and selected_has_created_password
@@ -3761,7 +3794,20 @@ if admin_page == "Admin Dashboard":
             )
         )
 
-    render_admin_activity_table(selected_user_activities, selected_activity_username)
+    if showing_deleted_user_activity:
+        st.info(f"Showing activity for deleted user '{activity_filter_username}'.")
+
+        if st.button("Back to selected user activity", use_container_width=True, key="clear_deleted_user_activity"):
+            st.session_state.last_deleted_username = ""
+            st.rerun()
+
+    activity_table_label = (
+        f"{activity_filter_username} (deleted account)"
+        if showing_deleted_user_activity
+        else activity_filter_username
+    )
+
+    render_admin_activity_table(selected_user_activities, activity_table_label)
 
     render_footer()
     st.stop()
