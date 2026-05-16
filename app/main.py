@@ -2816,6 +2816,19 @@ def get_admin_account_type(user):
     return "Application"
 
 
+def get_visible_user_numbers(users):
+    def user_sort_key(user):
+        try:
+            return int(user[0])
+        except Exception:
+            return 0
+
+    return {
+        user[0]: index + 1
+        for index, user in enumerate(sorted(users, key=user_sort_key))
+    }
+
+
 def admin_html(value):
     return html.escape("" if value is None else str(value))
 
@@ -2866,6 +2879,7 @@ def render_admin_table(title, subtitle, columns, rows):
 
 def render_admin_users_table(users):
     rows = []
+    visible_user_numbers = get_visible_user_numbers(users)
 
     for user in users:
         fields = get_admin_user_fields(user)
@@ -2873,9 +2887,10 @@ def render_admin_users_table(users):
         provider = (fields["social_provider"] or "").strip().lower()
         account_variant = "blue" if provider == "google" else "green"
         has_created_password = bool(fields["password"]) and bool(fields["password_created"])
+        visible_user_number = visible_user_numbers.get(fields["id"], fields["id"])
 
         rows.append({
-            "id": f"<span class='admin-id'>#{admin_html(fields['id'])}</span>",
+            "id": f"<span class='admin-id'>#{admin_html(visible_user_number)}</span>",
             "username": f"<span class='admin-strong'>{admin_html(fields['username'])}</span>",
             "email": f"<span class='admin-muted'>{admin_html(fields['email'] or 'No email')}</span>",
             "type": admin_pill(account_type, account_variant),
@@ -2887,7 +2902,7 @@ def render_admin_users_table(users):
         "Users",
         "Accounts registered in your AI CV Analyzer workspace.",
         [
-            ("id", "ID"),
+            ("id", "No."),
             ("username", "Username"),
             ("email", "Email"),
             ("type", "Account Type"),
@@ -3458,6 +3473,7 @@ if admin_page == "Admin Dashboard":
 
     if users:
         render_admin_users_table(users)
+        visible_user_numbers = get_visible_user_numbers(users)
 
         st.markdown("<div class='admin-manage-title'>Manage User</div>", unsafe_allow_html=True)
 
@@ -3475,10 +3491,11 @@ if admin_page == "Admin Dashboard":
         selected_account_type = get_admin_account_type(selected_user)
         selected_activity_username = selected_fields["username"]
         selected_has_created_password = bool(selected_fields["password"]) and bool(selected_fields["password_created"])
+        selected_visible_user_number = visible_user_numbers.get(selected_fields["id"], selected_fields["id"])
 
         st.write("#### User Details")
         detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
-        detail_col1.metric("User ID", selected_fields["id"])
+        detail_col1.metric("User No.", selected_visible_user_number)
         detail_col2.metric("Account Type", selected_account_type)
         detail_col3.metric("Password", "Created" if selected_has_created_password else "Uncreated")
         detail_col4.metric(
