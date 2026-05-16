@@ -170,6 +170,29 @@ def get_password_error(password):
     return ""
 
 
+def show_password_hint(password):
+    password_error = get_password_error(password)
+
+    if not password or not password_error:
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            margin: 6px 0 12px;
+            padding: 8px 10px;
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            border-radius: 8px;
+            background: rgba(248, 113, 113, 0.08);
+            color: #fca5a5;
+            font-size: 13px;
+            line-height: 1.35;
+        ">{html.escape(password_error)}</div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def get_secret(name, default=None):
     try:
         return st.secrets.get(name, default)
@@ -2553,8 +2576,7 @@ def render_account_settings():
         key="account_new_password",
         placeholder="Enter a password"
     )
-    if new_password and get_password_error(new_password):
-        st.error(get_password_error(new_password))
+    show_password_hint(new_password)
     confirm_password = st.text_input(
         "Confirm password",
         type="password",
@@ -3074,8 +3096,7 @@ def render_forgot_password_panel():
             key="forgot_password_new_password",
             placeholder="Enter a new password"
         )
-        if new_password and get_password_error(new_password):
-            st.error(get_password_error(new_password))
+        show_password_hint(new_password)
         confirm_new_password = st.text_input(
             "Confirm new password",
             type="password",
@@ -3239,8 +3260,7 @@ if not st.session_state.logged_in:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
             new_email = st.text_input("Email", key="register_email", placeholder="you@example.com")
             new_password = st.text_input("Password", type="password", key="register_password", placeholder="Enter a password")
-            if new_password and get_password_error(new_password):
-                st.error(get_password_error(new_password))
+            show_password_hint(new_password)
             confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password", placeholder="••••••••")
             verification_code = st.text_input("Email Verification Code", key="register_verification_code", placeholder="6-digit code")
 
@@ -3556,8 +3576,7 @@ if admin_page == "Admin Dashboard":
             key=f"admin_reset_password_{selected_fields['id']}",
             placeholder="Enter a new password for this user"
         )
-        if reset_password and get_password_error(reset_password):
-            st.error(get_password_error(reset_password))
+        show_password_hint(reset_password)
 
         col_edit, col_reset, col_unlink, col_delete = st.columns(4)
 
