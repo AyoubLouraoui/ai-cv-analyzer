@@ -2498,10 +2498,23 @@ def render_account_settings():
                     st.session_state.account_verification_code = ""
                     st.session_state.account_verification_email = ""
                     st.session_state.account_verified = False
+                    if password_changed and not has_created_password:
+                        activity_action = "password_create"
+                        activity_details = "Created platform password after email verification."
+                    elif password_changed:
+                        activity_action = "password_update"
+                        activity_details = "Updated platform password after email verification."
+                    elif email_changed:
+                        activity_action = "email_update"
+                        activity_details = "Updated account email after email verification."
+                    else:
+                        activity_action = "account_update"
+                        activity_details = "Updated account settings."
+
                     add_user_activity_safe(
                         st.session_state.username,
-                        "account_update",
-                        "Updated account email/password settings."
+                        activity_action,
+                        activity_details
                     )
                     st.success("Account updated successfully.")
                     st.rerun()
