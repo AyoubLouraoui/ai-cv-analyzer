@@ -157,6 +157,19 @@ def is_valid_email(email):
     return re.match(pattern, email.strip()) is not None
 
 
+def get_password_error(password):
+    password = password or ""
+
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not re.search(r"\d", password):
+        return "Password must contain at least one number."
+    if not re.search(r"[^A-Za-z0-9\s]", password):
+        return "Password must contain at least one symbol, like @, #, $, or !."
+
+    return ""
+
+
 def get_secret(name, default=None):
     try:
         return st.secrets.get(name, default)
@@ -2538,7 +2551,7 @@ def render_account_settings():
         password_label,
         type="password",
         key="account_new_password",
-        placeholder="Leave empty if you only want to change email"
+        placeholder="Min 8 characters, one number, one symbol"
     )
     confirm_password = st.text_input(
         "Confirm password",
@@ -2562,8 +2575,8 @@ def render_account_settings():
             st.error("Please enter a valid email address.")
         elif not email_changed and not password_changed:
             st.error("No changes to save.")
-        elif password_changed and len(new_password) < 6:
-            st.error("Password must be at least 6 characters.")
+        elif password_changed and get_password_error(new_password):
+            st.error(get_password_error(new_password))
         elif password_changed and new_password != confirm_password:
             st.error("Passwords do not match.")
         else:
@@ -3057,7 +3070,7 @@ def render_forgot_password_panel():
             "New password",
             type="password",
             key="forgot_password_new_password",
-            placeholder="Enter a new password"
+            placeholder="Min 8 characters, one number, one symbol"
         )
         confirm_new_password = st.text_input(
             "Confirm new password",
@@ -3073,8 +3086,8 @@ def render_forgot_password_panel():
                 st.error("Please use the same email that received the code.")
             elif reset_code.strip() != st.session_state.forgot_password_code:
                 st.error("Invalid confirmation code.")
-            elif len(new_password) < 6:
-                st.error("Password must be at least 6 characters.")
+            elif get_password_error(new_password):
+                st.error(get_password_error(new_password))
             elif new_password != confirm_new_password:
                 st.error("Passwords do not match.")
             elif not st.session_state.forgot_password_username:
@@ -3221,7 +3234,7 @@ if not st.session_state.logged_in:
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
             new_email = st.text_input("Email", key="register_email", placeholder="you@example.com")
-            new_password = st.text_input("Password", type="password", key="register_password", placeholder="••••••••")
+            new_password = st.text_input("Password", type="password", key="register_password", placeholder="Min 8 chars, number, symbol")
             confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password", placeholder="••••••••")
             verification_code = st.text_input("Email Verification Code", key="register_verification_code", placeholder="6-digit code")
 
@@ -3249,6 +3262,8 @@ if not st.session_state.logged_in:
                     st.error("❌ Please fill all fields")
                 elif not is_valid_email(new_email):
                     st.error("Please enter a valid email address.")
+                elif get_password_error(new_password):
+                    st.error(get_password_error(new_password))
                 elif new_password != confirm_password:
                     st.error("❌ Passwords do not match")
                 elif (
@@ -3533,7 +3548,7 @@ if admin_page == "Admin Dashboard":
             "Reset password",
             type="password",
             key=f"admin_reset_password_{selected_fields['id']}",
-            placeholder="Enter a new password for this user"
+            placeholder="Min 8 characters, one number, one symbol"
         )
 
         col_edit, col_reset, col_unlink, col_delete = st.columns(4)
@@ -3601,8 +3616,8 @@ if admin_page == "Admin Dashboard":
 
             with confirm_reset:
                 if st.button("Yes, reset password", use_container_width=True):
-                    if not reset_password or len(reset_password) < 6:
-                        st.error("Password must be at least 6 characters.")
+                    if get_password_error(reset_password):
+                        st.error(get_password_error(reset_password))
                     else:
                         try:
                             update_user_password_safe(selected_fields["id"], reset_password)
