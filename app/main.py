@@ -2865,6 +2865,19 @@ def render_admin_activity_table(activities, username_filter=None):
     )
 
 
+def has_password_activity(activities):
+    password_actions = {
+        "password_create",
+        "password_update",
+        "password_reset",
+    }
+
+    return any(
+        str(activity[2] or "").strip().lower() in password_actions
+        for activity in activities
+    )
+
+
 def clear_forgot_password_state(keep_open=False):
     st.session_state.forgot_password_open = keep_open
     st.session_state.forgot_password_code = ""
@@ -3608,8 +3621,28 @@ if admin_page == "Admin Dashboard":
     selected_user_activities = [
         activity
         for activity in activities
-        if selected_activity_username and activity[1] == selected_activity_username
+        if selected_activity_username
+        and str(activity[1] or "").strip().lower() == selected_activity_username.strip().lower()
     ]
+
+    if (
+        selected_activity_username
+        and users
+        and selected_fields["social_provider"] == "google"
+        and selected_has_created_password
+        and not has_password_activity(selected_user_activities)
+    ):
+        selected_user_activities.insert(
+            0,
+            (
+                "status",
+                selected_activity_username,
+                "password_create",
+                "Platform password is created for this Google-linked account.",
+                "Current status"
+            )
+        )
+
     render_admin_activity_table(selected_user_activities, selected_activity_username)
 
     render_footer()
