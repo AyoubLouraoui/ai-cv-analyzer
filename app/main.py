@@ -2139,7 +2139,35 @@ h3 {
     margin-top: 14px;
 }
 
+.site-footer {
+    width: 100vw;
+    min-height: 96px;
+    margin: 56px calc(50% - 50vw) 0;
+    padding: 0 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: #080910;
+    border-top: 1px solid rgba(148,163,184,0.08);
+    color: #59638f;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+}
+
+.site-footer-name {
+    color: #0bd9a0;
+    font-weight: 800;
+}
+
 @media (max-width: 760px) {
+    .site-footer {
+        min-height: auto;
+        padding: 24px 22px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     .about-shell {
         grid-template-columns: 1fr;
     }
@@ -2656,6 +2684,17 @@ def render_about_page():
     )
 
 
+def render_footer():
+    st.html(
+        """
+        <footer class="site-footer">
+            <div>&copy; 2026 Ayoub Louraoui &middot; Casablanca, Morocco</div>
+            <div>Built and coded by <span class="site-footer-name">Ayoub</span></div>
+        </footer>
+        """
+    )
+
+
 def get_admin_user_fields(user):
     return {
         "id": user[0],
@@ -3097,6 +3136,7 @@ if not st.session_state.logged_in:
             if st.button("Continue with Google", help="Create account with Google", use_container_width=True, key="google_reg"):
                 start_social_login("google")
 
+    render_footer()
     st.stop()
 
 # =======================
@@ -3242,11 +3282,13 @@ with st.sidebar:
 
 if admin_page == "Account Settings":
     render_account_settings()
+    render_footer()
     st.stop()
 
 
 if admin_page == "About":
     render_about_page()
+    render_footer()
     st.stop()
 
 
@@ -3538,6 +3580,7 @@ if admin_page == "Admin Dashboard":
 
     render_admin_activity_table(activities)
 
+    render_footer()
     st.stop()
 
 
@@ -4019,3 +4062,5 @@ else:
         <p>Upload your CV PDF to begin.</p>
     </div>
     """, unsafe_allow_html=True)
+
+render_footer()
