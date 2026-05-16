@@ -19,6 +19,14 @@ def register_user(username, email, password):
     )
 
 
+def register_social_user(username, email):
+    add_user(
+        username,
+        email,
+        None
+    )
+
+
 def login_user(username, password):
 
     user = get_user(username)

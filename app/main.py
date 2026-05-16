@@ -11,7 +11,7 @@ import secrets as py_secrets
 import requests
 from urllib.parse import urlencode, urlparse
 
-from auth_system import register_user, login_user, hash_password
+from auth_system import register_user, register_social_user, login_user, hash_password
 from pdf_parser import extract_text_from_pdf
 from skill_extractor import extract_skills
 from matcher import calculate_match_score
@@ -294,10 +294,9 @@ def ensure_social_user():
         counter += 1
         username = f"{base_username}_{counter}"
 
-    register_user(
+    register_social_user(
         username,
-        email,
-        py_secrets.token_urlsafe(32)
+        email
     )
 
     update_user_social_identity_safe(username, provider, social_sub)
@@ -324,10 +323,9 @@ def ensure_external_oauth_user(email, name, provider):
         counter += 1
         username = f"{base_username}_{counter}"
 
-    register_user(
+    register_social_user(
         username,
-        email,
-        py_secrets.token_urlsafe(32)
+        email
     )
 
     add_user_activity_safe(username, "social_register", f"Account created with {provider}: {email}")
@@ -2321,6 +2319,7 @@ def render_account_settings():
     stored_email = str(user[2] or "").strip().lower()
     is_google_account = is_social_login_active()
     current_profile_image = get_user_profile_image(user)
+    has_created_password = bool(user[3]) and bool(user[7]) if len(user) > 7 else bool(user[3])
 
     st.markdown(
         """
@@ -2412,7 +2411,7 @@ def render_account_settings():
     else:
         st.warning("No email is linked to this account yet.")
 
-    if is_google_account:
+    if is_google_account and not has_created_password:
         st.info("You are logged in with Google. You can create a password after verifying your Google email.")
 
     send_col, status_col = st.columns([1, 1])
@@ -2451,7 +2450,7 @@ def render_account_settings():
         key="account_new_email"
     )
 
-    password_label = "Create password" if is_google_account else "New password"
+    password_label = "Create password" if is_google_account and not has_created_password else "New password"
     new_password = st.text_input(
         password_label,
         type="password",
@@ -2710,6 +2709,7 @@ def get_admin_user_fields(user):
         "social_provider": user[4] if len(user) > 4 else "",
         "social_sub": user[5] if len(user) > 5 else "",
         "profile_image": user[6] if len(user) > 6 else "",
+        "password_created": bool(user[7]) if len(user) > 7 and user[7] is not None else bool((user[3] if len(user) > 3 else "") and not (user[4] if len(user) > 4 else "")),
     }
 
 
@@ -2781,13 +2781,14 @@ def render_admin_users_table(users):
         account_type = get_admin_account_type(user)
         provider = (fields["social_provider"] or "").strip().lower()
         account_variant = "blue" if provider == "google" else "green"
+        has_created_password = bool(fields["password"]) and bool(fields["password_created"])
 
         rows.append({
             "id": f"<span class='admin-id'>#{admin_html(fields['id'])}</span>",
             "username": f"<span class='admin-strong'>{admin_html(fields['username'])}</span>",
             "email": f"<span class='admin-muted'>{admin_html(fields['email'] or 'No email')}</span>",
             "type": admin_pill(account_type, account_variant),
-            "password": admin_pill("Created" if fields["password"] else "Missing", "green" if fields["password"] else "amber"),
+            "password": admin_pill("Created" if has_created_password else "Uncreated", "green" if has_created_password else "amber"),
             "google": admin_pill("Linked" if provider == "google" else "Not linked", "blue" if provider == "google" else "slate"),
         })
 
@@ -3351,12 +3352,13 @@ if admin_page == "Admin Dashboard":
         selected_fields = get_admin_user_fields(selected_user)
         selected_account_type = get_admin_account_type(selected_user)
         selected_activity_username = selected_fields["username"]
+        selected_has_created_password = bool(selected_fields["password"]) and bool(selected_fields["password_created"])
 
         st.write("#### User Details")
         detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
         detail_col1.metric("User ID", selected_fields["id"])
         detail_col2.metric("Account Type", selected_account_type)
-        detail_col3.metric("Password", "Created" if selected_fields["password"] else "Missing")
+        detail_col3.metric("Password", "Created" if selected_has_created_password else "Uncreated")
         detail_col4.metric(
             "Google",
             "Linked" if selected_fields["social_provider"] == "google" else "Not linked"
