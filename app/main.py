@@ -929,7 +929,7 @@ st.markdown("""
 .block-container {
     max-width: 1240px;
     padding-top: 1.25rem;
-    padding-bottom: 3.5rem;
+    padding-bottom: 0 !important;
 }
 
 .main-title {
@@ -2142,7 +2142,7 @@ h3 {
 .site-footer {
     width: 100vw;
     min-height: 96px;
-    margin: 56px calc(50% - 50vw) 0;
+    margin: 56px calc(50% - 50vw) -1rem;
     padding: 0 80px;
     display: flex;
     align-items: center;
