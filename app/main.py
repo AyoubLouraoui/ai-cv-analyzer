@@ -2158,6 +2158,12 @@ h3 {
 .site-footer-name {
     color: #0bd9a0;
     font-weight: 800;
+    text-decoration: none;
+}
+
+.site-footer-name:hover {
+    color: #5eead4;
+    text-decoration: none;
 }
 
 @media (max-width: 760px) {
@@ -2689,7 +2695,7 @@ def render_footer():
         """
         <footer class="site-footer">
             <div>&copy; 2026 Ayoub Louraoui &middot; Casablanca, Morocco</div>
-            <div>Built and coded by <span class="site-footer-name">Ayoub</span></div>
+            <div>Built and coded by <a class="site-footer-name" href="https://www.instagram.com/ayoublouraoui_/" target="_blank" rel="noopener noreferrer">Ayoub</a></div>
         </footer>
         """
     )
