@@ -2551,8 +2551,10 @@ def render_account_settings():
         password_label,
         type="password",
         key="account_new_password",
-        placeholder="Min 8 characters, one number, one symbol"
+        placeholder="Enter a password"
     )
+    if new_password and get_password_error(new_password):
+        st.error(get_password_error(new_password))
     confirm_password = st.text_input(
         "Confirm password",
         type="password",
@@ -3070,8 +3072,10 @@ def render_forgot_password_panel():
             "New password",
             type="password",
             key="forgot_password_new_password",
-            placeholder="Min 8 characters, one number, one symbol"
+            placeholder="Enter a new password"
         )
+        if new_password and get_password_error(new_password):
+            st.error(get_password_error(new_password))
         confirm_new_password = st.text_input(
             "Confirm new password",
             type="password",
@@ -3234,7 +3238,9 @@ if not st.session_state.logged_in:
         with register_tab:
             new_username = st.text_input("Username", key="register_username", placeholder="your_username")
             new_email = st.text_input("Email", key="register_email", placeholder="you@example.com")
-            new_password = st.text_input("Password", type="password", key="register_password", placeholder="Min 8 chars, number, symbol")
+            new_password = st.text_input("Password", type="password", key="register_password", placeholder="Enter a password")
+            if new_password and get_password_error(new_password):
+                st.error(get_password_error(new_password))
             confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password", placeholder="••••••••")
             verification_code = st.text_input("Email Verification Code", key="register_verification_code", placeholder="6-digit code")
 
@@ -3548,8 +3554,10 @@ if admin_page == "Admin Dashboard":
             "Reset password",
             type="password",
             key=f"admin_reset_password_{selected_fields['id']}",
-            placeholder="Min 8 characters, one number, one symbol"
+            placeholder="Enter a new password for this user"
         )
+        if reset_password and get_password_error(reset_password):
+            st.error(get_password_error(reset_password))
 
         col_edit, col_reset, col_unlink, col_delete = st.columns(4)
 
