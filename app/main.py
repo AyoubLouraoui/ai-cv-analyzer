@@ -2584,7 +2584,9 @@ def render_account_settings():
         placeholder="Repeat new password"
     )
 
-    if st.button("Save account changes", use_container_width=True, key="account_save_changes"):
+    if new_password and get_password_error(new_password):
+        st.caption("Fix the password requirements before saving changes.")
+    elif st.button("Save account changes", use_container_width=True, key="account_save_changes"):
         normalized_new_email = new_email.strip().lower()
         email_changed = normalized_new_email != stored_email
         password_changed = bool(new_password)
@@ -3104,7 +3106,9 @@ def render_forgot_password_panel():
             placeholder="Repeat the new password"
         )
 
-        if st.button("Reset password and open dashboard", use_container_width=True, key="forgot_password_reset"):
+        if new_password and get_password_error(new_password):
+            st.caption("Fix the password requirements before resetting your password.")
+        elif st.button("Reset password and open dashboard", use_container_width=True, key="forgot_password_reset"):
             normalized_email = reset_email.strip().lower()
 
             if normalized_email != st.session_state.forgot_password_email:
@@ -3283,7 +3287,9 @@ if not st.session_state.logged_in:
                         else:
                             st.error(message)
 
-            if st.button("Create my account →", use_container_width=True, key="btn_register"):
+            if new_password and get_password_error(new_password):
+                st.caption("Fix the password requirements before creating your account.")
+            elif st.button("Create my account →", use_container_width=True, key="btn_register"):
                 if not new_username or not new_email or not new_password:
                     st.error("❌ Please fill all fields")
                 elif not is_valid_email(new_email):
@@ -3638,14 +3644,19 @@ if admin_page == "Admin Dashboard":
                     st.rerun()
 
         if st.session_state.confirm_reset_password_user_id == selected_fields["id"]:
-            st.warning(f"Confirm password reset for user '{selected_fields['username']}'?")
-            confirm_reset, cancel_reset = st.columns(2)
+            password_error = get_password_error(reset_password)
 
-            with confirm_reset:
-                if st.button("Yes, reset password", use_container_width=True):
-                    if get_password_error(reset_password):
-                        st.error(get_password_error(reset_password))
-                    else:
+            if password_error:
+                st.error(password_error)
+                if st.button("Cancel password reset", use_container_width=True):
+                    st.session_state.confirm_reset_password_user_id = None
+                    st.rerun()
+            else:
+                st.warning(f"Confirm password reset for user '{selected_fields['username']}'?")
+                confirm_reset, cancel_reset = st.columns(2)
+
+                with confirm_reset:
+                    if st.button("Yes, reset password", use_container_width=True):
                         try:
                             update_user_password_safe(selected_fields["id"], reset_password)
                             add_user_activity_safe(
@@ -3659,10 +3670,10 @@ if admin_page == "Admin Dashboard":
                         except Exception:
                             st.error("Could not reset password.")
 
-            with cancel_reset:
-                if st.button("Cancel password reset", use_container_width=True):
-                    st.session_state.confirm_reset_password_user_id = None
-                    st.rerun()
+                with cancel_reset:
+                    if st.button("Cancel password reset", use_container_width=True):
+                        st.session_state.confirm_reset_password_user_id = None
+                        st.rerun()
 
         if st.session_state.confirm_unlink_social_user_id == selected_fields["id"]:
             st.warning(
