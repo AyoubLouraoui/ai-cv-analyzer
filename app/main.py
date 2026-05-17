@@ -79,6 +79,11 @@ def clear_user_social_identity_safe(user_id):
         database.clear_user_social_identity(user_id)
 
 
+def set_user_admin_safe(user_id, is_admin):
+    if hasattr(database, "set_user_admin"):
+        database.set_user_admin(user_id, is_admin)
+
+
 def delete_user_safe(user_id):
     if hasattr(database, "delete_user"):
         database.delete_user(user_id)
@@ -237,6 +242,7 @@ def enforce_active_account_session():
     user = get_current_user_safe()
 
     if user:
+        st.session_state.is_admin = is_admin_user(username)
         return
 
     if is_secret_admin_username(username):
@@ -274,17 +280,43 @@ def is_secret_admin_username(username):
     return bool(admin_username) and str(username or "").strip().lower() == admin_username
 
 
-def is_admin_user(username):
+def get_config_admin_usernames():
     admin_usernames = get_secret("ADMIN_USERNAMES", "admin,ayoub")
 
     if isinstance(admin_usernames, str):
-        admin_usernames = [
+        return [
             item.strip().lower()
             for item in admin_usernames.split(",")
             if item.strip()
         ]
 
-    return username.strip().lower() in admin_usernames
+    return [
+        str(item).strip().lower()
+        for item in admin_usernames
+        if str(item).strip()
+    ]
+
+
+def is_config_admin_username(username):
+    normalized_username = str(username or "").strip().lower()
+    return normalized_username in get_config_admin_usernames()
+
+
+def is_protected_admin_username(username):
+    return is_secret_admin_username(username) or is_config_admin_username(username)
+
+
+def is_admin_user(username):
+    normalized_username = str(username or "").strip().lower()
+
+    if is_protected_admin_username(normalized_username):
+        return True
+
+    try:
+        user = database.get_user(username)
+        return bool(user and len(user) > 9 and user[9])
+    except Exception:
+        return False
 
 
 def split_secret_list(value):
@@ -2344,6 +2376,9 @@ if "confirm_reset_password_user_id" not in st.session_state:
 if "confirm_unlink_social_user_id" not in st.session_state:
     st.session_state.confirm_unlink_social_user_id = None
 
+if "confirm_toggle_admin_user_id" not in st.session_state:
+    st.session_state.confirm_toggle_admin_user_id = None
+
 if "account_verification_code" not in st.session_state:
     st.session_state.account_verification_code = ""
 
@@ -2846,6 +2881,7 @@ def get_admin_user_fields(user):
         "profile_image": user[6] if len(user) > 6 else "",
         "password_created": bool(user[7]) if len(user) > 7 and user[7] is not None else bool((user[3] if len(user) > 3 else "") and not (user[4] if len(user) > 4 else "")),
         "password_created_at": user[8] if len(user) > 8 else "",
+        "is_admin": bool(user[9]) if len(user) > 9 and user[9] is not None else False,
     }
 
 
@@ -2933,11 +2969,13 @@ def render_admin_users_table(users):
         account_variant = "blue" if provider == "google" else "green"
         has_created_password = bool(fields["password"]) and bool(fields["password_created"])
         visible_user_number = visible_user_numbers.get(fields["id"], fields["id"])
+        has_admin_role = is_protected_admin_username(fields["username"]) or bool(fields["is_admin"])
 
         rows.append({
             "id": f"<span class='admin-id'>#{admin_html(visible_user_number)}</span>",
             "username": f"<span class='admin-strong'>{admin_html(fields['username'])}</span>",
             "email": f"<span class='admin-muted'>{admin_html(fields['email'] or 'No email')}</span>",
+            "role": admin_pill("Admin" if has_admin_role else "User", "amber" if has_admin_role else "slate"),
             "type": admin_pill(account_type, account_variant),
             "password": admin_pill("Created" if has_created_password else "Uncreated", "green" if has_created_password else "amber"),
             "google": admin_pill("Linked" if provider == "google" else "Not linked", "blue" if provider == "google" else "slate"),
@@ -2950,6 +2988,7 @@ def render_admin_users_table(users):
             ("id", "No."),
             ("username", "Username"),
             ("email", "Email"),
+            ("role", "Role"),
             ("type", "Account Type"),
             ("password", "Password"),
             ("google", "Google"),
@@ -2963,7 +3002,7 @@ def get_activity_variant(action):
 
     if "delete" in action_text or "remove" in action_text:
         return "red"
-    if "reset" in action_text or "password" in action_text or "update" in action_text or "changed" in action_text:
+    if "reset" in action_text or "password" in action_text or "update" in action_text or "changed" in action_text or "admin" in action_text or "grant" in action_text:
         return "amber"
     if "login" in action_text:
         return "blue"
@@ -3353,7 +3392,8 @@ with st.sidebar:
         unsafe_allow_html=True
     )
     welcome_name = st.session_state.display_name or st.session_state.username
-    is_admin = st.session_state.is_admin or is_admin_user(st.session_state.username)
+    is_admin = is_admin_user(st.session_state.username)
+    st.session_state.is_admin = is_admin
     avatar_letter = (welcome_name.strip()[:1] or "U").upper()
     sidebar_user = get_current_user_safe()
     sidebar_profile_image = get_user_profile_image(sidebar_user)
@@ -3545,18 +3585,30 @@ if admin_page == "Admin Dashboard":
         selected_activity_username = selected_fields["username"]
         selected_has_created_password = bool(selected_fields["password"]) and bool(selected_fields["password_created"])
         selected_visible_user_number = visible_user_numbers.get(selected_fields["id"], selected_fields["id"])
+        selected_is_config_admin = is_config_admin_username(selected_fields["username"])
+        selected_is_protected_admin = is_protected_admin_username(selected_fields["username"])
+        current_is_protected_admin = is_protected_admin_username(st.session_state.username)
+        protected_target_locked = selected_is_protected_admin and not current_is_protected_admin
+        selected_has_admin_role = selected_is_protected_admin or bool(selected_fields["is_admin"])
 
         st.write("#### User Details")
-        detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
+        detail_col1, detail_col2, detail_col3, detail_col4, detail_col5 = st.columns(5)
         detail_col1.metric("User No.", selected_visible_user_number)
-        detail_col2.metric("Account Type", selected_account_type)
-        detail_col3.metric("Password", "Created" if selected_has_created_password else "Uncreated")
-        detail_col4.metric(
+        detail_col2.metric("Role", "Admin" if selected_has_admin_role else "User")
+        detail_col3.metric("Account Type", selected_account_type)
+        detail_col4.metric("Password", "Created" if selected_has_created_password else "Uncreated")
+        detail_col5.metric(
             "Google",
             "Linked" if selected_fields["social_provider"] == "google" else "Not linked"
         )
 
         st.caption(f"Email: {selected_fields['email'] or 'No email'}")
+
+        if selected_is_config_admin:
+            st.info("This admin role comes from Streamlit Secrets. Remove the username from ADMIN_USERNAMES if you want to manage it only from the dashboard.")
+
+        if protected_target_locked:
+            st.warning("This is an owner/protected admin account. Only an owner admin can update, reset, unlink, delete, or change its role.")
 
         if selected_fields["social_provider"]:
             st.info(
@@ -3584,35 +3636,48 @@ if admin_page == "Admin Dashboard":
         )
         show_password_hint(reset_password)
 
-        col_edit, col_reset, col_unlink, col_delete = st.columns(4)
+        col_edit, col_role, col_reset, col_unlink, col_delete = st.columns(5)
 
         with col_edit:
-            if st.button("Update User", use_container_width=True):
+            if st.button("Update User", use_container_width=True, disabled=protected_target_locked):
                 st.session_state.confirm_update_user_id = selected_fields["id"]
+                st.session_state.confirm_delete_user_id = None
+                st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_unlink_social_user_id = None
+                st.session_state.confirm_toggle_admin_user_id = None
+
+        with col_role:
+            role_button_label = "Remove Admin" if selected_has_admin_role else "Make Admin"
+            if st.button(role_button_label, use_container_width=True, disabled=selected_is_config_admin or protected_target_locked):
+                st.session_state.confirm_toggle_admin_user_id = selected_fields["id"]
+                st.session_state.confirm_update_user_id = None
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_reset_password_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
 
         with col_reset:
-            if st.button("Reset Password", use_container_width=True):
+            if st.button("Reset Password", use_container_width=True, disabled=protected_target_locked):
                 st.session_state.confirm_reset_password_user_id = selected_fields["id"]
                 st.session_state.confirm_update_user_id = None
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
+                st.session_state.confirm_toggle_admin_user_id = None
 
         with col_unlink:
-            if st.button("Unlink Google", use_container_width=True, disabled=selected_fields["social_provider"] != "google"):
+            if st.button("Unlink Google", use_container_width=True, disabled=selected_fields["social_provider"] != "google" or protected_target_locked):
                 st.session_state.confirm_unlink_social_user_id = selected_fields["id"]
                 st.session_state.confirm_update_user_id = None
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_toggle_admin_user_id = None
 
         with col_delete:
-            if st.button("Delete User", use_container_width=True):
+            if st.button("Delete User", use_container_width=True, disabled=protected_target_locked):
                 st.session_state.confirm_delete_user_id = selected_fields["id"]
                 st.session_state.confirm_update_user_id = None
                 st.session_state.confirm_reset_password_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
+                st.session_state.confirm_toggle_admin_user_id = None
 
         if st.session_state.confirm_update_user_id == selected_fields["id"]:
             st.warning(
@@ -3622,7 +3687,9 @@ if admin_page == "Admin Dashboard":
 
             with confirm_update:
                 if st.button("Yes, update user", use_container_width=True):
-                    if not edit_username or not edit_email:
+                    if protected_target_locked:
+                        st.error("You cannot update an owner/protected admin account.")
+                    elif not edit_username or not edit_email:
                         st.error("Username and email are required.")
                     elif not is_valid_email(edit_email):
                         st.error("Please enter a valid email address.")
@@ -3643,6 +3710,48 @@ if admin_page == "Admin Dashboard":
                     st.session_state.confirm_update_user_id = None
                     st.rerun()
 
+        if st.session_state.confirm_toggle_admin_user_id == selected_fields["id"]:
+            target_admin_status = not selected_has_admin_role
+            role_action_label = "make this user an admin" if target_admin_status else "remove admin from this user"
+            st.warning(f"Confirm: {role_action_label} for '{selected_fields['username']}'?")
+            confirm_role, cancel_role = st.columns(2)
+
+            with confirm_role:
+                if st.button("Yes, update role", use_container_width=True):
+                    if protected_target_locked:
+                        st.error("You cannot change the role of an owner/protected admin account.")
+                    elif selected_is_config_admin:
+                        st.error("This admin role is controlled by Streamlit Secrets. Remove it from ADMIN_USERNAMES first.")
+                    else:
+                        try:
+                            set_user_admin_safe(selected_fields["id"], target_admin_status)
+                            role_action = "admin_granted" if target_admin_status else "admin_removed"
+                            role_details = (
+                                f"Admin role granted by {st.session_state.username}."
+                                if target_admin_status
+                                else f"Admin role removed by {st.session_state.username}."
+                            )
+                            add_user_activity_safe(selected_fields["username"], role_action, role_details)
+                            add_user_activity_safe(
+                                st.session_state.username,
+                                role_action,
+                                f"{'Granted admin to' if target_admin_status else 'Removed admin from'} {selected_fields['username']}."
+                            )
+
+                            if selected_fields["username"] == st.session_state.username:
+                                st.session_state.is_admin = target_admin_status
+
+                            st.session_state.confirm_toggle_admin_user_id = None
+                            set_flash_success("User role updated successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not update user role.")
+
+            with cancel_role:
+                if st.button("Cancel role update", use_container_width=True):
+                    st.session_state.confirm_toggle_admin_user_id = None
+                    st.rerun()
+
         if st.session_state.confirm_reset_password_user_id == selected_fields["id"]:
             password_error = get_password_error(reset_password)
 
@@ -3657,18 +3766,21 @@ if admin_page == "Admin Dashboard":
 
                 with confirm_reset:
                     if st.button("Yes, reset password", use_container_width=True):
-                        try:
-                            update_user_password_safe(selected_fields["id"], reset_password)
-                            add_user_activity_safe(
-                                selected_fields["username"],
-                                "password_changed" if selected_has_created_password else "password_create",
-                                "Admin changed this user's platform password."
-                            )
-                            st.session_state.confirm_reset_password_user_id = None
-                            set_flash_success("Password changed successfully.")
-                            st.rerun()
-                        except Exception:
-                            st.error("Could not reset password.")
+                        if protected_target_locked:
+                            st.error("You cannot reset password for an owner/protected admin account.")
+                        else:
+                            try:
+                                update_user_password_safe(selected_fields["id"], reset_password)
+                                add_user_activity_safe(
+                                    selected_fields["username"],
+                                    "password_changed" if selected_has_created_password else "password_create",
+                                    "Admin changed this user's platform password."
+                                )
+                                st.session_state.confirm_reset_password_user_id = None
+                                set_flash_success("Password changed successfully.")
+                                st.rerun()
+                            except Exception:
+                                st.error("Could not reset password.")
 
                 with cancel_reset:
                     if st.button("Cancel password reset", use_container_width=True):
@@ -3683,13 +3795,16 @@ if admin_page == "Admin Dashboard":
 
             with confirm_unlink:
                 if st.button("Yes, unlink Google", use_container_width=True):
-                    try:
-                        clear_user_social_identity_safe(selected_fields["id"])
-                        st.session_state.confirm_unlink_social_user_id = None
-                        set_flash_success("Google login unlinked successfully.")
-                        st.rerun()
-                    except Exception:
-                        st.error("Could not unlink Google login.")
+                    if protected_target_locked:
+                        st.error("You cannot unlink Google from an owner/protected admin account.")
+                    else:
+                        try:
+                            clear_user_social_identity_safe(selected_fields["id"])
+                            st.session_state.confirm_unlink_social_user_id = None
+                            set_flash_success("Google login unlinked successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not unlink Google login.")
 
             with cancel_unlink:
                 if st.button("Cancel unlink", use_container_width=True):
@@ -3704,7 +3819,9 @@ if admin_page == "Admin Dashboard":
 
             with confirm_delete:
                 if st.button("Yes, delete user", use_container_width=True):
-                    if selected_fields["username"] == st.session_state.username:
+                    if protected_target_locked:
+                        st.error("You cannot delete an owner/protected admin account.")
+                    elif selected_fields["username"] == st.session_state.username:
                         st.error("You cannot delete the account you are currently using.")
                     else:
                         try:
