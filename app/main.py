@@ -4156,7 +4156,7 @@ if uploaded_file is not None:
             )
             learning_resources = get_learning_resources(
                 best_career_data["career"],
-                cv_skills
+                best_career_data["next_skills"]
             )
 
             job_search_queries = build_job_queries(
@@ -4324,28 +4324,39 @@ if uploaded_file is not None:
             st.info(f"Step {i}: {step}")
 
         if learning_resources:
-            st.write("### 🎓 YouTube Playlists & Coursera Certificates")
+            st.write("### 🎓 Learn Your Next Skills")
             st.caption(f"Detected domain: {learning_resources['domain']}")
 
-            youtube_col, coursera_col = st.columns(2)
-
-            with youtube_col:
-                st.write("#### YouTube playlists")
-                for resource in learning_resources["youtube_playlists"]:
-                    st.link_button(
-                        f"{resource['language']} - {resource['title']}",
-                        resource["url"],
-                        use_container_width=True
-                    )
-
-            with coursera_col:
-                st.write("#### Coursera certificates")
-                for resource in learning_resources["coursera_certificates"]:
-                    st.link_button(
-                        resource["title"],
-                        resource["url"],
-                        use_container_width=True
-                    )
+            for resource in learning_resources["skill_resources"]:
+                st.markdown(
+                    f"""
+                    <div style="
+                        border: 1px solid rgba(148, 163, 184, 0.22);
+                        border-radius: 10px;
+                        padding: 14px 16px;
+                        margin: 10px 0;
+                        background: rgba(15, 23, 42, 0.55);
+                    ">
+                        <div style="font-size: 18px; font-weight: 800; color: #f8fafc; margin-bottom: 6px;">
+                            {html.escape(resource['skill'])}
+                        </div>
+                        <div style="font-size: 13px; color: #93c5fd; margin-bottom: 12px;">
+                            Learn this next skill, build a small project with it, then add it to your CV.
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            {
+                                f'<a href="{html.escape(resource["youtube_url"], quote=True)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:#ff0033;color:white;text-decoration:none;font-weight:800;"><span style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:white;color:#ff0033;font-size:12px;">▶</span>YouTube Playlist</a>'
+                                if resource["youtube_url"]
+                                else '<span style="display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:rgba(148,163,184,0.12);color:#94a3b8;font-weight:800;"><span style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#334155;color:#94a3b8;font-size:12px;">▶</span>Playlist coming soon</span>'
+                            }
+                            <a href="{html.escape(resource['coursera_url'], quote=True)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:#0056d2;color:white;text-decoration:none;font-weight:800;">
+                                <span style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:white;color:#0056d2;font-size:14px;font-weight:900;">C</span>Coursera Certificate
+                            </a>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
     else:
         st.warning(
             "No matching career path found. Add more relevant skills to your CV "
