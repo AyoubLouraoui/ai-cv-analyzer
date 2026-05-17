@@ -364,6 +364,15 @@ def get_all_user_activity():
     )
 
 
+def clear_user_activity(username):
+    p = placeholder()
+
+    execute(
+        f"DELETE FROM user_activity WHERE LOWER(username)=LOWER({p})",
+        (username,)
+    )
+
+
 def get_database_backend():
     return "PostgreSQL" if IS_POSTGRES else "SQLite"
 

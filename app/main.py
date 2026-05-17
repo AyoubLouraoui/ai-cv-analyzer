@@ -50,6 +50,11 @@ def get_all_user_activity_safe():
     return []
 
 
+def clear_user_activity_safe(username):
+    if hasattr(database, "clear_user_activity"):
+        database.clear_user_activity(username)
+
+
 def get_all_users_safe():
     if hasattr(database, "get_all_users"):
         return database.get_all_users()
@@ -242,10 +247,23 @@ def enforce_active_account_session():
     user = get_current_user_safe()
 
     if user:
-        st.session_state.is_admin = is_admin_user(username)
+        latest_admin_role = is_admin_user(username)
+        current_admin_role = bool(st.session_state.get("is_admin", False))
+
+        if latest_admin_role != current_admin_role:
+            st.session_state.is_admin = latest_admin_role
+            st.session_state.profile_menu_open = False
+            if latest_admin_role:
+                set_flash_success("Admin access enabled. Your workspace was refreshed.")
+            else:
+                set_flash_success("Admin access removed. Your workspace was refreshed.")
+            st.rerun()
+
+        st.session_state.is_admin = latest_admin_role
         return
 
     if is_secret_admin_username(username):
+        st.session_state.is_admin = True
         return
 
     clear_login_session("Your account was removed by an administrator. Your session has been closed.")
@@ -260,7 +278,7 @@ def enforce_active_account_session():
 
 
 if hasattr(st, "fragment"):
-    @st.fragment(run_every="10s")
+    @st.fragment(run_every="5s")
     def render_session_guard():
         enforce_active_account_session()
 else:
@@ -2379,6 +2397,9 @@ if "confirm_unlink_social_user_id" not in st.session_state:
 if "confirm_toggle_admin_user_id" not in st.session_state:
     st.session_state.confirm_toggle_admin_user_id = None
 
+if "confirm_clear_activity_user_id" not in st.session_state:
+    st.session_state.confirm_clear_activity_user_id = None
+
 if "account_verification_code" not in st.session_state:
     st.session_state.account_verification_code = ""
 
@@ -2975,10 +2996,10 @@ def render_admin_users_table(users):
             "id": f"<span class='admin-id'>#{admin_html(visible_user_number)}</span>",
             "username": f"<span class='admin-strong'>{admin_html(fields['username'])}</span>",
             "email": f"<span class='admin-muted'>{admin_html(fields['email'] or 'No email')}</span>",
-            "role": admin_pill("Admin" if has_admin_role else "User", "amber" if has_admin_role else "slate"),
             "type": admin_pill(account_type, account_variant),
             "password": admin_pill("Created" if has_created_password else "Uncreated", "green" if has_created_password else "amber"),
             "google": admin_pill("Linked" if provider == "google" else "Not linked", "blue" if provider == "google" else "slate"),
+            "user_type": admin_pill("Admin" if has_admin_role else "Normal User", "amber" if has_admin_role else "slate"),
         })
 
     render_admin_table(
@@ -2988,10 +3009,10 @@ def render_admin_users_table(users):
             ("id", "No."),
             ("username", "Username"),
             ("email", "Email"),
-            ("role", "Role"),
             ("type", "Account Type"),
             ("password", "Password"),
             ("google", "Google"),
+            ("user_type", "User Type"),
         ],
         rows
     )
@@ -3000,7 +3021,7 @@ def render_admin_users_table(users):
 def get_activity_variant(action):
     action_text = (action or "").lower()
 
-    if "delete" in action_text or "remove" in action_text:
+    if "delete" in action_text or "remove" in action_text or "clear" in action_text:
         return "red"
     if "reset" in action_text or "password" in action_text or "update" in action_text or "changed" in action_text or "admin" in action_text or "grant" in action_text:
         return "amber"
@@ -3604,19 +3625,8 @@ if admin_page == "Admin Dashboard":
 
         st.caption(f"Email: {selected_fields['email'] or 'No email'}")
 
-        if selected_is_config_admin:
-            st.info("This admin role comes from Streamlit Secrets. Remove the username from ADMIN_USERNAMES if you want to manage it only from the dashboard.")
-
         if protected_target_locked:
             st.warning("This is an owner/protected admin account. Only an owner admin can update, reset, unlink, delete, or change its role.")
-
-        if selected_fields["social_provider"]:
-            st.info(
-                f"This user registered or logged in with {selected_account_type}. "
-                "You can still update the email, reset the password, unlink Google, or delete the account."
-            )
-        else:
-            st.info("This user registered normally from the application.")
 
         edit_username = st.text_input(
             "Username",
@@ -3636,7 +3646,7 @@ if admin_page == "Admin Dashboard":
         )
         show_password_hint(reset_password)
 
-        col_edit, col_role, col_reset, col_unlink, col_delete = st.columns(5)
+        col_edit, col_role, col_reset, col_unlink, col_activity, col_delete = st.columns(6)
 
         with col_edit:
             if st.button("Update User", use_container_width=True, disabled=protected_target_locked):
@@ -3645,6 +3655,7 @@ if admin_page == "Admin Dashboard":
                 st.session_state.confirm_reset_password_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
                 st.session_state.confirm_toggle_admin_user_id = None
+                st.session_state.confirm_clear_activity_user_id = None
 
         with col_role:
             role_button_label = "Remove Admin" if selected_has_admin_role else "Make Admin"
@@ -3654,6 +3665,7 @@ if admin_page == "Admin Dashboard":
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_reset_password_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
+                st.session_state.confirm_clear_activity_user_id = None
 
         with col_reset:
             if st.button("Reset Password", use_container_width=True, disabled=protected_target_locked):
@@ -3662,6 +3674,7 @@ if admin_page == "Admin Dashboard":
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
                 st.session_state.confirm_toggle_admin_user_id = None
+                st.session_state.confirm_clear_activity_user_id = None
 
         with col_unlink:
             if st.button("Unlink Google", use_container_width=True, disabled=selected_fields["social_provider"] != "google" or protected_target_locked):
@@ -3669,6 +3682,16 @@ if admin_page == "Admin Dashboard":
                 st.session_state.confirm_update_user_id = None
                 st.session_state.confirm_delete_user_id = None
                 st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_toggle_admin_user_id = None
+                st.session_state.confirm_clear_activity_user_id = None
+
+        with col_activity:
+            if st.button("Clear Activity", use_container_width=True, disabled=protected_target_locked):
+                st.session_state.confirm_clear_activity_user_id = selected_fields["id"]
+                st.session_state.confirm_update_user_id = None
+                st.session_state.confirm_delete_user_id = None
+                st.session_state.confirm_reset_password_user_id = None
+                st.session_state.confirm_unlink_social_user_id = None
                 st.session_state.confirm_toggle_admin_user_id = None
 
         with col_delete:
@@ -3678,6 +3701,7 @@ if admin_page == "Admin Dashboard":
                 st.session_state.confirm_reset_password_user_id = None
                 st.session_state.confirm_unlink_social_user_id = None
                 st.session_state.confirm_toggle_admin_user_id = None
+                st.session_state.confirm_clear_activity_user_id = None
 
         if st.session_state.confirm_update_user_id == selected_fields["id"]:
             st.warning(
@@ -3809,6 +3833,40 @@ if admin_page == "Admin Dashboard":
             with cancel_unlink:
                 if st.button("Cancel unlink", use_container_width=True):
                     st.session_state.confirm_unlink_social_user_id = None
+                    st.rerun()
+
+        if st.session_state.confirm_clear_activity_user_id == selected_fields["id"]:
+            st.warning(
+                f"Confirm clear activity for user '{selected_fields['username']}'? This will remove the activity history for this user."
+            )
+            confirm_clear_activity, cancel_clear_activity = st.columns(2)
+
+            with confirm_clear_activity:
+                if st.button("Yes, clear activity", use_container_width=True):
+                    if protected_target_locked:
+                        st.error("You cannot clear activity for an owner/protected admin account.")
+                    else:
+                        try:
+                            cleared_username = selected_fields["username"]
+                            admin_username = st.session_state.username
+                            clear_user_activity_safe(cleared_username)
+
+                            if admin_username.strip().lower() != cleared_username.strip().lower():
+                                add_user_activity_safe(
+                                    admin_username,
+                                    "activity_cleared",
+                                    f"Cleared activity history for {cleared_username}."
+                                )
+
+                            st.session_state.confirm_clear_activity_user_id = None
+                            set_flash_success("User activity cleared successfully.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Could not clear user activity.")
+
+            with cancel_clear_activity:
+                if st.button("Cancel clear activity", use_container_width=True):
+                    st.session_state.confirm_clear_activity_user_id = None
                     st.rerun()
 
         if st.session_state.confirm_delete_user_id == selected_fields["id"]:
