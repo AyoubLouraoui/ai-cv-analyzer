@@ -22,6 +22,7 @@ from career_path import predict_career_path
 from interview_generator import generate_interview_questions
 from roadmap_generator import generate_roadmap
 from cover_letter_generator import generate_cover_letter
+from learning_resources import get_learning_resources
 from job_api import search_morocco_jobs, search_international_jobs
 from job_query_builder import build_job_queries
 from cv_improver import improve_cv
@@ -4127,6 +4128,7 @@ if uploaded_file is not None:
         missing_skills = []
         recommendations = []
         learning_roadmap = []
+        learning_resources = None
         cover_letter = ""
         job_search_queries = []
         morocco_jobs = []
@@ -4151,6 +4153,10 @@ if uploaded_file is not None:
 
             learning_roadmap = generate_roadmap(
                 best_career_data["career"]
+            )
+            learning_resources = get_learning_resources(
+                best_career_data["career"],
+                cv_skills
             )
 
             job_search_queries = build_job_queries(
@@ -4205,6 +4211,13 @@ if uploaded_file is not None:
                     st.session_state.username,
                     "job_search",
                     "Search queries: " + ", ".join(job_search_queries)
+                )
+
+            if learning_resources:
+                add_user_activity_safe(
+                    st.session_state.username,
+                    "learning_resources",
+                    f"Generated YouTube and Coursera resources for {learning_resources['domain']}."
                 )
 
             if cover_letter:
@@ -4309,6 +4322,30 @@ if uploaded_file is not None:
 
         for i, step in enumerate(learning_roadmap, start=1):
             st.info(f"Step {i}: {step}")
+
+        if learning_resources:
+            st.write("### 🎓 YouTube Playlists & Coursera Certificates")
+            st.caption(f"Detected domain: {learning_resources['domain']}")
+
+            youtube_col, coursera_col = st.columns(2)
+
+            with youtube_col:
+                st.write("#### YouTube playlists")
+                for resource in learning_resources["youtube_playlists"]:
+                    st.link_button(
+                        f"{resource['language']} - {resource['title']}",
+                        resource["url"],
+                        use_container_width=True
+                    )
+
+            with coursera_col:
+                st.write("#### Coursera certificates")
+                for resource in learning_resources["coursera_certificates"]:
+                    st.link_button(
+                        resource["title"],
+                        resource["url"],
+                        use_container_width=True
+                    )
     else:
         st.warning(
             "No matching career path found. Add more relevant skills to your CV "
